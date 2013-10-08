@@ -1,4 +1,4 @@
-ethzcsmaster
+Algolab-HS13
 ============
 
-Code repository for my courses in ETHZ
+Solutions for the Algolab problems.
