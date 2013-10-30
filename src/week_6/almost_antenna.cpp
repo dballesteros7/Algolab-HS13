@@ -4,6 +4,8 @@
 #include <CGAL/Min_circle_2_traits_2.h>
 #include <iostream>
 #include <cmath>
+#include <vector>
+#include <algorithm>
 
 using namespace CGAL;
 using namespace std;
@@ -19,7 +21,7 @@ int main(){
     int n;
     cin >> n;
     while(n != 0){
-        Point* population = new Point[n];
+        vector<Point> population(n);
         for(int i = 0; i < n; ++i){
             double x,y;
             cin >> x;
@@ -27,9 +29,20 @@ int main(){
             Point citizen(x,y);
             population[i] = citizen;
         }
-        Min_circle antenna(&population[0], &population[n], true);
+        Min_circle antenna(population.begin(), population.end(), true);
         CircleTraits::Circle circle = antenna.circle();
-        K::FT exact_radius = sqrt(circle.squared_radius());
+        K::FT min_squared_radius = circle.squared_radius();
+        for(Min_circle::Support_point_iterator it = antenna.support_points_begin(); it != antenna.support_points_end(); ++it){
+            vector<Point>::iterator support_pos = find(population.begin(), population.end(), (*it));
+            Point support_point = *support_pos;
+            population.erase(support_pos);
+            Min_circle currentAntenna(population.begin(), population.end(), true);
+            if(currentAntenna.circle().squared_radius() < min_squared_radius){
+                min_squared_radius = currentAntenna.circle().squared_radius();
+            }
+            population.push_back(support_point);
+        }
+        K::FT exact_radius = sqrt(min_squared_radius);
         double radius = ceil(to_double(exact_radius));
         while(radius < exact_radius) radius++;
         while(radius - 1 >= exact_radius) radius--;
