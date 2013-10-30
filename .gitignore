@@ -14,3 +14,9 @@
 
 # Vim files
 *.swp
+
+# CGAL MAKE
+CMakeFiles/
+CMake*
+*.cmake
+Makefile
