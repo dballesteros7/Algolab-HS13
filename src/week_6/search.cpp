@@ -3,7 +3,14 @@
 #include <vector>
 #include <algorithm>
 #include <map>
+#include <queue>
+#include <climits>
+
 using namespace std;
+
+typedef pair<long,int> Pos;
+typedef priority_queue<Pos> MaxQueue;
+typedef priority_queue<Pos, vector<Pos>, std::greater<Pos> > MinQueue;
 
 int main(){
     ios_base::sync_with_stdio(false);
@@ -12,77 +19,44 @@ int main(){
     for(int i = 0; i < t; ++i){
         int n;
         cin >> n;
-        int *occurrences = new int[n];
-        int *current_occurrences = new int[n];
-        bool *exists = new bool[n];
-        int total = 0;
+        long *occurrences = new long[n];
         for(int j = 0; j < n; ++j){
             cin >> occurrences[j];
-            total += occurrences[j];
-            exists[j] = false;
-            current_occurrences[j] = 0;
         }
-        vector<pair<int,int> > positions(total, pair<int,int>());
-        int w = 0;
-        int sum = 0;
-        for(int j = 0; j < total; ++j){
-            if(j - sum >= occurrences[w]){
-                sum += occurrences[w];
-                ++w;
+        MinQueue mins;
+        MaxQueue maxes;
+        vector<long> *posLists = new vector<long>[n];
+        for(int j = 0; j < n; ++j){
+            posLists[j] = vector<long>(occurrences[j]);
+            for(int k = 0; k < occurrences[j]; ++k){
+                cin >> posLists[j][k];
             }
-            int p;
-            cin >> p;
-            pair<int,int> current(p, w);
-            positions[j] = current;
+            Pos tmp(posLists[j][0],j);
+            mins.push(tmp);
+            maxes.push(tmp);
         }
-        sort(&positions[0], &positions[total]);
-        int opt_start_pos = positions[0].first;
-        int opt_start_pos_j = 0;
-        int opt_end_pos = positions[1].first;
-        int opt_end_pos_j = 1;
-        current_occurrences[positions[0].second]++;
-        current_occurrences[positions[1].second]++;
-        exists[positions[0].second] = true;
-        exists[positions[1].second] = true;
-        for(int j = 2; j < total; ++j){
-            pair<int, int> current = positions[j];
-            if(!exists[current.second]){
-                exists[current.second] = true;
-                opt_end_pos = current.first;
-                opt_end_pos_j = j;
-                current_occurrences[current.second]++;
+        vector<long>::iterator *pointers = new vector<long>::iterator [n];
+        for(int j = 0; j < n; ++j){
+            pointers[j] = posLists[j].begin();
+        }
+        long min_distance = maxes.top().first - mins.top().first + 1;
+        bool condition = false;
+        while(!condition){
+            Pos min_pos = mins.top();
+            if(pointers[min_pos.second] + 1 == posLists[min_pos.second].end()){
+                condition = true;
             } else {
-                //cout << current.second << "\n";
-                current_occurrences[current.second]++;
-                int new_start = opt_start_pos_j;
-                vector<int> restore;
-                for(int k = opt_start_pos_j; k < j; ++k){
-                    if(current_occurrences[positions[k].second] > 1){
-                        current_occurrences[positions[k].second]--;
-                        restore.push_back(positions[k].second);
-                    } else {
-                        new_start = k;
-                        break;
-                    }
-                }
-                int distance_1 = current.first - positions[new_start].first + 1;
-                int distance_2 = opt_end_pos - opt_start_pos + 1;
-                //cout << distance_1 << " " << distance_2 << "\n";
-                if(distance_1 < distance_2){
-                    //cout << distance_1 << " " << distance_2 << "\n";
-                    //cout << positions[new_start].first << " " << current.first << "\n";
-                    opt_start_pos_j = new_start;
-                    opt_start_pos = positions[opt_start_pos_j].first;
-                    opt_end_pos = current.first;
-                    opt_end_pos_j = j;
-                } else {
-                    for(int k = 0; k < restore.size(); k++){
-                        current_occurrences[restore[k]]++;
-                    }
+                pointers[min_pos.second]++;
+                mins.pop();
+                Pos tmp(*(pointers[min_pos.second]),min_pos.second);
+                mins.push(tmp);
+                maxes.push(tmp);
+                long interval = maxes.top().first - mins.top().first + 1;
+                if(interval < min_distance){
+                    min_distance = interval;
                 }
             }
         }
-        cout << opt_end_pos - opt_start_pos + 1 << "\n";
-        //cout << opt_end_pos << " " << opt_start_pos << "\n";
+        cout << min_distance << "\n";
     }
 }
