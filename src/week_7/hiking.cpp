@@ -1,5 +1,4 @@
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
-#include <CGAL/intersections.h>
 #include <iostream>
 #include <vector>
 #include <queue>
@@ -11,31 +10,34 @@ using namespace std;
 using namespace CGAL;
 
 typedef Exact_predicates_inexact_constructions_kernel K;
-typedef Line_2<K> Line;
 typedef Point_2<K> Point;
-typedef Triangle_2<K> Triangle;
-typedef Direction_2<K> Direction;
 typedef pair<int, int> Position;
 typedef priority_queue<Position> MaxHeap;
 typedef priority_queue<Position, vector<Position>, greater<Position> > MinHeap;
 
-vector<Line> sortLines(Point a1, Point a2, Point b1, Point b2, Point c1, Point c2){
-    vector<Line> result;
-    Line a(a1,a2);
-    Line b(b1,b2);
-    Line c(c1,c2);
-    if(!a.has_on_positive_side(b1)){
-        a = a.opposite();
+vector< pair<Point, Point> > sortLines(Point a1, Point a2, Point b1, Point b2, Point c1, Point c2){
+    vector< pair<Point,Point> > result;
+    if(orientation(a1,a2,b1) == LEFT_TURN){
+        pair<Point,Point> a(a1,a2);
+        result.push_back(a);
+    } else {
+        pair<Point,Point> a(a2,a1);
+        result.push_back(a);
     }
-    if(!b.has_on_positive_side(a1)){
-        b = b.opposite();
+    if(orientation(b1,b2,c1) == LEFT_TURN){
+        pair<Point,Point> b(b1,b2);
+        result.push_back(b);
+    } else {
+        pair<Point,Point> b(b2,b1);
+        result.push_back(b);
     }
-    if(!c.has_on_positive_side(a1)){
-        c = c.opposite();
+    if(orientation(c1,c2,a1) == LEFT_TURN){
+        pair<Point,Point> c(c1,c2);
+        result.push_back(c);
+    } else {
+        pair<Point,Point> c(c2,c1);
+        result.push_back(c);
     }
-    result.push_back(a);
-    result.push_back(b);
-    result.push_back(c);
     return result;
 }
 
@@ -64,13 +66,13 @@ int main(){
         for(int j = 0; j < n; ++j){
             double q0x, q0y,q1x,q1y,q2x,q2y,q3x,q3y,q4x,q4y,q5x,q5y;
             cin >> q0x >> q0y >> q1x >> q1y >> q2x >> q2y >> q3x >> q3y >> q4x >> q4y >> q5x >> q5y;
-            vector<Line> oriented_lines = sortLines(Point(q0x,q0y), Point(q1x,q1y), Point(q2x, q2y), Point(q3x,q3y), Point(q4x, q4y), Point(q5x, q5y));
+            vector< pair<Point, Point> > oriented_lines = sortLines(Point(q0x,q0y), Point(q1x,q1y), Point(q2x, q2y), Point(q3x,q3y), Point(q4x, q4y), Point(q5x, q5y));
             for(int k = 0; k < m; ++k){
                 Point a = path[k];
-                for(vector<Line>::iterator it = oriented_lines.begin(); it != oriented_lines.end(); ++it){
-                    if(!(it->has_on_positive_side(a) || it->has_on(a))){
+                for(vector< pair<Point, Point> >::iterator it = oriented_lines.begin(); it != oriented_lines.end(); ++it){
+                    Orientation oriented = orientation(it->first, it->second, a);
+                    if(!(oriented == LEFT_TURN || oriented == COLLINEAR)){
                         inTriangle[k] = false;
-                        break;
                     }
                 }
                 if(k > 0){
