@@ -1,0 +1,413 @@
+\documentclass[11pt]{book}
+
+\begin{document}
+
+\chapter{ACM problems}
+
+\section{Week 1}
+
+\subsection{Even pairs}
+
+\begin{description}
+	\item[Key problem] Count the number of consecutive intervals of length 1 to n which have an even sum.
+	\item[Key solution insight] Since the input is binary then adding a 1 will make any even number, odd and any odd number even. Adding a 0 will preserve parity.
+	\item[Solution details] $O(n)$ \\
+		\begin{itemize}
+			\item Any zero adds an even sum interval of length 1.
+			\item A zero after an interval with even sum can add intervals equal to the number of even pairs already in the preceding sequence.
+			\item A one only adds interval if there is an odd sequence before available.
+		\end{itemize}
+\end{description}
+
+\subsection{Build the sum}
+
+\begin{description}
+	\item[Key problem] Build a sum with precision of less than $10^{-6}$.
+	\item[Key solution insight] Everything fits in a double.
+	\item[Solution details] $O(n)$ \\ Just iterate over the input and sum.
+\end{description}
+
+\subsection{Shelves}
+
+\begin{description}
+	\item[Key problem] Fit two types of shelves of length $n$ and $m$, in one interval of length $l$ with minimum empty space at the end and maximum number of length $n$ shelves.
+	\item[Key insight] If $n$ is less than $\sqrt{l}$ then number of $m$-length shelves can't be greater than $\sqrt{l}$. If $n$ is greater than $\sqrt{l}$ then the number of $n$-length shelves can't be greater than $\sqrt{l}$.
+	\item[Solution details] $O(\sqrt{l})$ \\ Iterate n or m from the division given value up to $\sqrt{l}$.
+\end{description}
+
+\subsection{Checking change}
+
+\begin{description}
+	\item[Key problem] Using $C$ denominations of coins, build $m$ different quantities with the minimum number of coins, if possible at all.
+	\item[Key insight] This is a Dynamic Programming problem, building a quantity $t$ can be deduced from the minimum of $t - c_i$ for $c_i$ in $C$, which is the set with all the possible types of coins.
+	\item[Solution details] $O(\max{m_i}*\left|C\right(|)$ \\ Calculate the DP table for the maximum requested quantity and this gives the values for all $m$ quantities in a test case.
+\end{description}
+
+\subsection{Dominoes}
+
+\begin{description}
+	\item[Key problem] Given a linear array of $n$ dominoes of height $h_i$ find the number of dominoes toppled when the first one is toppled.
+	\item[Key insight] This is a simple linear problem where we first read the input and then check on each domino how far it can go if it goes down, keeping count of where we are.
+	\item[Solution details] $O(n)$ \\ Do ios\_base::sync\_with\_stdio(false).
+\end{description}
+
+\section{Week 2}
+
+\subsection{False coin}
+
+\begin{description}
+	\item[Key problem] Given $N$ coins, one of them false and with different weight and $K$ binary weighing in subsets of the $N$ coins. Determine which coin is false, or if this is not possible from the given measurements.
+	\item[Key insight] Keep a memory of where each coin appeared, e.g. if a subsequent measure gives conflict like coin $i$ is both in a set of greater and lesser weight then remove it from the suspicion set. In the end check if there is a single measurement in the set of less or greater. 
+	\item[Solution details] $O(K*N)$ \\ Do the comparisons online as the measurements come in.
+\end{description}
+
+\subsection{Race tracks}
+
+\begin{description}
+	\item[Key problem] Find the fastest path from some point to another in a two-dimensional grid $(X,Y)$ given that at each step the movement speed in each direction can be independently changed with $+1$ and $-1$. With obstacles that block some positions in the grid and a maximum magnitude for the speed in any direction of $|3|$.
+	\item[Key insight] It can be a shortest path graph problem if each node encodes both position and speed. Therefore having $7*7*X*Y$ nodes.
+	\item[Solution details] $O(X*Y)$ \\ Build the graph with all the possible edges from each position given all possible speeds and mark obstacle nodes as visited from the start. Run A* for quick solution with highest speed, straight line as heuristic, otherwise BFS is enough.
+\end{description}
+
+\subsection{Boats}
+
+\begin{description}
+	\item[Key problem] Fit a $N$ boats with fixed length and with constraints on the starting and ending points, such that the number of boats is maximized. This is equivalent to a interval scheduling problem with minimum start point and maximum deadline.
+	\item[Key insight] This can be solved greedily after sorting by anchor point, and choosing the boats such that at each step the used deadline is minimized.
+	\item[Solution details] $O(Nlog(N))$ \\ Sort the boats by anchor point and then iterate by placing boats only when they produce a minimum starting point for the next boat to consider (i.e. minimum deadline used).
+\end{description}
+
+\subsection{Formula one}
+
+\begin{description}
+	\item[Key problem] Determine the minimum number of consecutive swaps needed to order an initially unordered list of $N$ elements. This represents the overpasses needed in the race to get to the final positions.
+	\item[Key insight] This can be done by ordering the final list, and counting the number of consecutive swaps done during the algorithm.
+	\item[Solution details] $O(Nlog(N))$ \\ Implement merge sort and count the swaps done when merging ordered sub-lists.
+\end{description}
+
+\subsection{Aliens}
+
+\begin{description}
+	\item[Key problem] Determine the number of aliens that can feel superior to any other alien and human. An alien feels superior to any other human if there is a path from the alien to another human/alien. E.g. Alien A defeats human B who defeated alien C then alien is superior to B, C, and any human defeated by C. The list of humans wounded by an alien is given as an intervals $p,q$, all humans outside that interval hurt the alien instead. There are $n$ aliens.
+	\item[Key insight] The only aliens that can feel superior are those whose interval $p,q$ is not contained in any other alien's interval.
+	\item[Solution details] $O(nlog(n))$ \\ One must check that all humans were defeated, and count the number of intervals that are not contained in any other interval. This can be done by ordering the intervals by starting point, then ending point and iterating over them considering only those aliens with the largest ending point if they start at the same point or otherwise those that are not completely contained in the previous dominant alien.
+\end{description}
+
+\section{Week 3}
+
+\subsection{Longest path}
+
+\begin{description}
+	\item[Key problem] Find longest path in a tree of $N$ nodes.
+	\item[Key insight] This can be done by looking up from leaf nodes and summing the number of steps that it took to reach each node until a last node with two children will get the sum of both paths.
+	\item[Solution details] $O(N)$ \\ Build an adjacency list and then visit BFS, removing children at every step and only visiting leafs after the removal operation. Keep count on the maximum number of steps needed to reach a node before it becomes a leaf.
+\end{description}
+
+\subsection{Light patterns}
+
+\begin{description}
+	\item[Key problem] Find the minimum number of operations needed to get a desired on/off repeating sequence of length $k$ in an array of $n$ light bulbs. The operations are changing an individual light bulb state or flipping the state of a light bulb and all previous ones.
+	\item[Key insight] This is a DP problem where one must keep track between changing the bulb in bulk or a single one and sum the minimum cost over this in a DP fashion.
+	\item[Solution details] $O(n/k)$ \\ In each block of length $k$ count the number of errors present and then decided if flipping all of them, with the previous one or flipping twice is better than flipping individually. Keep the value of both options for doing the DP update.
+\end{description}
+
+\subsection{Burning coins from two sides}
+
+\begin{description}
+	\item[Key problem] Find the minimum gain in a game where each player can take a coin from one of the extremes of an array until there are no more coins. There are $n$ coins in each game and the player always starts and assumes a perfect opponent.
+	\item[Key insight] This is a DP problem because at each stage of the game a perfect opponent will move in order to minimize his losses and the player must try to maximize his as well. This can be stated with two base cases for even and odd $n$.
+	\item[Solution details] $O(n)$ \\ Keep record of all cases and choose the value that minimize the loss at each step until the loss is calculated for all states of the coins.
+\end{description}
+
+\subsection{Jump}
+
+\begin{description}
+	\item[Key problem] Reach a cell $n$ starting at position 1 and jumping a distance of maximum $k$, either forwards or backwards. Each jump has a cost $a$ given by the target cell of the jump.
+	\item[Key insight] Jumps are always forwards, backwards jumps make no sense. At every step find the best cell to jump from using a priority queue and a list of best costs.
+	\item[Solution details] $O(nlog(n))$ \\ Do the operation as the input is being read because only forwards jumps work.
+\end{description}
+
+\chapter{BGL problems}
+
+\section{Week 4}
+
+\subsection{BGL}
+
+\begin{description}
+	\item[Key problem] Calculate a MST and the longest shortest distance from node 0 to other node.
+	\item[Key insight] Nothing special, just training with BGL.
+	\item[Solution details] Use Prim's algorithm for MST, Dijkstra for all the shortest distances from source 0 and then choose the maximum value.
+\end{description}
+
+\subsection{Ant challenge}
+
+\begin{description}
+	\item[Key problem] Find the shortest route between two nodes in a graph given different weights for each edge. First building each sub-graph for each species which is constructed by starting at some node and choosing the edge with minimum cost adjacent to an already visited nodes until all nodes are visited. Forest is of size $n$.
+	\item[Key insight] After building the sub-graphs, combine them by using the minimum edge weight for every edge that exists and then run a Dijsktra to find the solution to the shortest path problem.
+	\item[Solution details] $O(n)$ \\ Use priority queues to build the private networks, and also update the combined network at the same time that the private networks are being built. In the end call Dijkstra from BGL.
+\end{description}
+
+\subsection{Important bridges}
+
+\begin{description}
+	\item[Key problem] Find the critical bridges connecting $n$ islands with $m$ bridges. A critical bridge is one that when removed for repairs, makes the island network disconnected.
+	\item[Key insight] A critical bridge is an edge that belongs to a component with one single edge. This is equivalent to an edge between two articulation points.
+	\item[Solution details] Call the biconnected components algorithm and then do a mapping from components to edges and find the components with a single edge. Return such edges as important bridges.
+\end{description}
+
+\subsection{Shy programmers}
+
+\begin{description}
+	\item[Key problem] Build a graph with $n$ nodes such that every node has an edge between friends without intersecting and also a route outside of the graph without intersecting any other route. The routes must be straight lines. Determine if such arrangement is possible.
+	\item[Key insight] This is a problem of planar graphs, actually straight planar graphs, but every planar graph is straight planar so just a planar graph suffices. Apart from being planar in terms of friendships, it must also be planar after adding a node that has an edge to all other nodes, this represents the exits which must be outside the network of people.
+	\item[Solution details] Build an $n+1$ node graph, as described by the problem plus the infinite node. Then run the planarity test and output the answer.
+\end{description}
+
+\subsection{Deleted entries}
+
+\begin{description}
+	\item[Key problem] Divide a graph of $n$ students in 3 groups that must delete all relations between each other but can maintain relations with students in other groups. Also the graph must stay connected after forming the groups.
+	\item[Key insight] This requires building a connected subgraph that can be 3-colored. Any DFS tree satisfies this requirement.
+	\item[Solution details] The graph must be connected to begin with, and the DFS tree must be built non-recursive otherwise the stack blows up. The tree coloring of a tree is easy since for each node there is at most two levels, one below and one above.
+\end{description}
+
+\section{Week 5}
+
+\subsection{Buddy selection}
+
+\begin{description}
+	\item[Key problem] Given $n$ students, with $c$ characteristics per student and a matching generated with at least $f$ common characteristics. Determine if such possible matching exits.
+	\item[Key insight] This can be reduced to a maximum matching problem by building a graph where edges occur only when two students share at least $f$ characteristics.
+	\item[Details solution] Build the graph as described before and obtain the maximum matching, if any student is not matched then say it is optimal. Otherwise the professor made a not optimal matching.
+\end{description}
+
+\subsection{Satellites}
+
+\begin{description}
+	\item[Key problem] Given $s$ and $g$ satellites and ground stations with some link between them, determine the minimum number of sensors in satellites and ground stations needed to cover all links between them.
+	\item[Key insight] This is equivalent to a minimum vertex cover on a bipartite graph. This can be solved by calculating the maximum matching and traversing through it.
+	\item[Solution details] Calculate the maximum matching and then traversing by going from one side to the other only following not matched links and from the other side back only through matched links.
+\end{description}
+
+\subsection{Coin tossing tournament}
+
+\begin{description}
+	\item[Key problem] Given a game with $n$ players and $m$ 1v1 rounds with binary outcome, some of them with the outcome noted. Find if the given final score is possible or not.
+	\item[Key insight] This can be done as a flow problem where every match is a node with one edge incoming of capacity one and one edge outgoing to each of the players. Then each player has an outgoing edge with score equal to the reported score. The test is to check whether the flow is equal to all the reported scores.
+	\item[Solution details] Build the graph as described and check the maximum flow if all score edges are saturated.
+\end{description}
+
+\subsection{Kingdom defense}
+
+\begin{description}
+	\item[Key problem] Given an arrange of soldiers and towns, decide if it's possible to circulate the soldiers such that every town has a big enough garrison during the circulation and that every route is seen with some soldiers going through it.
+	\item[Key insight] This can be reduced to a max flow problem by setting the vertex demands as edges to/from an artificial source and sink. And for the edge demands this can be put onto the vertex demands by adding to the source demand and subtracting from the target demand of the directed edge.
+	\item[Solution details] Build a graph as described and then run the max flow, if the flow on all edges going to the sink is saturated then there is a possible circulation.
+\end{description}
+
+\subsection{Algocoon group}
+
+\begin{description}
+	\item[Key problem] Given an arrange of sculptures with limbs going out to other sculptures and a cost of removing each limb, find a division that minimizes your cost of removing limbs going from your division to the other.
+	\item[Key insight] This can be solved as a min-cut problem by considering the max flow on the directed graph between all sources and sinks since at least each division must have one object. To do this, consider a fixed node and then calculate the min flow between all nodes to it and from it to all other nodes. The minimum of all this will be the minimum global cut.
+	\item[Solution details] $O(n*n^3)$ \\ Set a fixed node and calculate two max flows for every other node. Then select the minimum flow from these maximum flows and derive the minimum cut by doing a DFS blocking on saturated edges.
+\end{description}
+
+\chapter{CGAL problems}
+
+\section{Week 6}
+
+\subsection{Hit?}
+
+\begin{description}
+	\item[Key problem] Given a ray in a 2-D space and a set of segments that act as obstacles, determine if the ray hits any of the obstacles.
+	\item[Key insight] Only inexact constructions are needed because it is only necessary to test a predicate (do\_intersect).
+	\item[Solution details] Iterate over all obstacles and check whether the ray intersect or not.
+\end{description}
+
+\subsection{Antenna}
+
+\begin{description}
+	\item[Key problem] Given a set of $n$ citizens described as points in the plane, determine the minimum radius of an antenna that covers them all.
+	\item[Key insight] This requires calculating the minimum enclosing circle. This needs exact constructions but it's only linear on the number of points.
+	\item[Solution details] Calculate the minimum enclosing circle and the round up the exact radius to the next integer.
+\end{description}
+
+\subsection{First hit}
+
+\begin{description}
+	\item[Key problem] Given the same ray and obstacles as in Hit?, determine the first intersection of the ray with an antenna.
+	\item[Key insight] This requires exact constructions to output the coordinates of the first intersection.
+	\item[Solution details] For each segment, check the ones that intersect the ray and check for one with the smallest distance to the ray's source. Then calculate the intersection point and output the result.
+\end{description}
+
+\subsection{Almost antenna}
+
+\begin{description}
+	\item[Key problem] Given a set of $n$ citizens in the plane, calculate the smallest radius of an antenna that covers all but one.
+	\item[Key insight] This requires at most 3 calculations of the smallest enclosing circle. This can be done by calculating the smallest enclosing circle and then comparing its radius to the radius of the 3 smallest circles generated by removing each of the points that describe the original smallest enclosing circle.
+	\item[Solution details] Use exact constructions and always rebuild the circle from scratch using randomization.
+\end{description}
+
+\subsection{Search snippets}
+
+\begin{description}
+	\item[Key problem] Given a set of words in a text, and their positions. Determine the minimum interval that encloses at least one of each word.
+	\item[Key insight] This is a kind of line sweep problem.
+	\item[Solution details] The key here is to always move a pointer where the minimum position is set, until this goes over the maximum position. In that case there will be another minimum position to consider in other word and these can be moved up to the limit. If at some point some word reaches its last position then the algorithm stop and the minimum distance is returned.
+\end{description}
+
+\section{Week 7}
+
+\subsection{Graypes}
+
+\begin{description}
+	\item[Key problem] Given a set of graypes, determine the pair that will meet first given that each graype runs at unit speed and always runs for the closest graype.
+	\item[Key insight] This just requires finding the closest distance between all points and this is done with the delaunay triangulation. Then the time is equal to the distance halved given the unit speed.
+	\item[Solution details] All this can be done with inexact constructions.
+\end{description}
+
+\subsection{Bistro}
+
+\begin{description}
+	\item[Key problem] Given $n$ existing locations and $m$ potential locations give the shortest distance from each new location to the existing ones.
+	\item[Key insight] This can be easily calculated with a delaunay triangulation, querying for the new locations.
+	\item[Solution details] Inexact constructions, closest vertex call in the triangulation.
+\end{description}
+
+\subsection{H1N1}
+
+\begin{description}
+	\item[Key problem] Given a set of $n$ infected points and some $m$ healthy users, determine if each of the healthy users can escape without coming closer than some distance $d$ to any infected point.
+	\item[Key insight] An escape route that maximizes the distance to any infected point requires going through the voronoi edge until a ray is located.
+	\item[Solution details] First a point is located in any of the faces of the delaunay triangulation, then first check that is already far enough from any of the infected points in the face. If so, then snap it to the voronoi edge and check whether it can escape through the midpoint of the delaunay edges. If so move to the adjacent face until reaching an infinite face. Only requires inexact constructions since no voronoi dual is needed.
+\end{description}
+
+\subsection{Germs}
+
+\begin{description}
+	\item[Key problem] Given $n$ growing disk bacteria, determine the times when the first bacteria dies, the time when 50\% are dead and when all are dead.
+	\item[Key insight] This is done by calculating all smallest distances between the points and ordering them. Then finding the median, min and max values.
+	\item[Solution details] The time for each distance can be calculated using the given formula and rounding up to integers, then the times can be sorted and the median, min and max found.
+\end{description}
+
+\subsection{Hiking maps}
+
+\begin{description}
+	\item[Key problem] Given some triangular sections of a map, ordered by index, determine the smallest interval of triangular sections that covers the full path desired on the map.
+	\item[Key insight] Since each leg of the path must be contained fully in a triangular section this can be determined by checking the left,right orientation of the points of the triangle and then ordering to make it like the search snippets problem.
+	\item[Solution details] This doesn't require exact constructions as long as the check for triangle container is done with predicates.
+\end{description}
+
+\section{Week 8}
+
+\subsection{Maximize it}
+
+\begin{description}
+	\item[Key problem] Solve two quadratic optimization problems for varying parameters.
+	\item[Key insight] Nothing. Just apply a quadratic solver.
+\end{description}
+
+\subsection{Diets}
+
+\begin{description}
+	\item[Key problem] Minimize the cost of a diet subject to constraints on food supply and nutritional requirements.
+	\item[Key insight] This is just a problem of building constraints for a linear programming problem.
+	\item[Solution details] Apply the quadratic solver and get the minimum cost.
+\end{description}
+
+\subsection{Portfolios}
+
+\begin{description}
+	\item[Key problem] Find the minimum risk given a minimum expected return and variables for costs and risk factors.
+	\item[Key insight] This is a problem with quadratic cost function and linear constraint.
+	\item[Solution details] Can apply the quadratic solver and check if the minimum risk is lower than the maximum allowed.
+\end{description}
+
+\subsection{Inball}
+
+\begin{description}
+	\item[Key problem] Determine the maximum radius of a d-dimensional ball that fits in a convex space.
+	\item[Key insight] The distance from the center of the ball to each of the planes describing the space is a linear function rather than quadratic given the inner product. $D = \frac{ax_0 + by_0 + cz_0 + d}{\sqrt{a^2 + b^2 + c^2}}$.
+	\item[Solution details] Maximize the radius, keeping the center inside all points if possible. Otherwise say the region is infeasible.
+\end{description}
+
+\subsection{Collisions}
+
+\begin{description}
+	\item[Key problem] Given a set of $n$ planes and a minimum distance $d$ count the number of planes which have at least a plane closer than $d$ in distance.
+	\item[Key insight] This can be calculated from the delaunay triangulation, by checking the delaunay edges and counting the number of planes with neighbors closer than $d$.
+	\item[Solution details] This is like iterating over the euclidean MST and checking the distances. No exact constructions needed.
+\end{description}
+
+\chapter{Exam preparation problems}
+
+\section{Week 9}
+
+\subsection{TheeV}
+
+\begin{description}
+	\item[Key problem] Find the minimum radius for two transmitters such that a set of $n$ points is covered, noting that the first transmitter is fixed at the location of one of the cities.
+	\item[Key insight] This can be solved by sorting the points according to their distance from the capital and calculating the second antenna as covering those points not covered from the first that are far away until the minimum is found.
+	\item[Solution details] Requires exact constructions for the circle, but it's only linear in the iteration over the sorted points and comparing radii.
+\end{description}
+
+\subsection{Placing knights}
+
+\begin{description}
+	\item[Key problem] Find the maximum number of knights that can be placed in a board with holes such that no knight threatens each other.
+	\item[Key insight] The graph of knights covering a board is bipartite. Without holes this problem would reduce to N/2 where N is the number of squares in the board.
+	\item[Solution details] Calculate the maximum matching on the graph of knight movements on the board, discounting the holes and then the maximum independent set is equal to the number of available squares minus the size of the maximum matching.
+\end{description}
+
+\subsection{Monkey island}
+
+\begin{description}
+	\item[Key problem] Given a set of locations with cost and a set of directed edges. Decide on a subset of locations such that all locations are reachable from some location in the subset and the cost is minimized.
+	\item[Key insight] This can be calculated using the strongly connected components and reducing the graph to a graph of strongly connected components where the cost of building in each component is the minimum of any of the nodes it contains. Then it is only needed to build in components which have no edges entering them.
+	\item[Solution details] Build the graph, determine the strongly connected components and the cost for each of these. Then build a new graph and check the in degree of this to find the minimum cost.
+\end{description}
+
+\subsection{Shopping trip}
+
+\begin{description}
+	\item[Key problem] Given a set of target nodes and a single source, representing stores and home respectively. Find if there is a way to visit all stores and come back but using a different path every time.
+	\item[Key insight] This is a problem of disjoint paths and can be done by using maximum flow over the undirected graph with unit capacities, multiple sinks and a single source. If the flow is equal to the number of sinks then there is a way to visit all of them with disjoint paths.
+	\item[Solution details] Build an undirected graph by creating a pair of edges in each direction, then create an artificial sink from all sinks and then calculate the max flow. Compare to the number of sinks to determine the answer.
+\end{description}
+
+\section{Week 10}
+
+\subsection{Poker chips}
+
+\begin{description}
+	\item[Key problem] Determine the maximum attainable score in a game with $k$ stacks of $n_k$ poker chips of different $c$ colors such that at every step one can only remove chips from the same color but can decide whether to remove one, two or all of them of the same color from the top of the stack.
+	\item[Key insight] This is a DP problem where the state is encoded with the quantities of each stack. The validity of the transitions are encoded by the colors and the rules.
+	\item[Solution details] For calculating the possibilities out of each state, do a binary string with 5 bit such that all $2^5$ possibilities can be evaluated and the minimum found in a DP fashion.
+\end{description}
+
+\subsection{Portfolios revisited}
+
+\begin{description}
+	\item[Key problem] Determine the maximum expected return given a budget on risk and values for individual costs and risks.
+	\item[Key insight] A naive approach results in a quadratic constraint problem, but using the same quadratic program as in portfolios I this can be calculated using binary search from the maximum return with no limit on variance to 0.
+	\item[Solution details] Since the maximum expected reward without variance constraint is small enough then a binary search on the minimum expected reward for each program is a reasonable approach.
+\end{description}
+
+\subsection{Tetris}
+
+\begin{description}
+	\item[Key problem] A very modified version of tetris, the ideas is to set bricks up to maximum height such that no point in the width has two different rows with a break in them. (See figure in problem statement).
+	\item[Key insight] This can be formulated as a flow problem on the width of the problem as nodes and maximizing the flow from one side to the other and using unit capacities.
+	\item[Solution details] Set a graph with number of nodes equal to double the width, add an edge for each brick with unit capacity. The vertex capacity is one and this can be done by using two nodes for each value of $w_i$.
+\end{description}
+
+\subsection{Stamp exhibition}
+
+\begin{description}
+	\item[Key problem] Given a set of lamps, stamps and walls. Determine if is possible to meet all illumination constraint in all stamps.
+	\item[Key insight] The calculation of the illumination of each stamp in terms of lamps and walls can be done using a $n^2$ approach to calculate all distances and intersections. Then a linear program can be used to check feasibility.
+	\item[Solution details] If the constraints of a linear program are specified in K::FT then the solution MUST be specified in K::FT.
+\end{description}
+
+\end{document}
