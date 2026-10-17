@@ -1,5 +1,6 @@
 #include <iostream>
-#include <map>
+#include <vector>
+#include <algorithm>
 #include <utility>
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/push_relabel_max_flow.hpp>
@@ -14,39 +15,27 @@ typedef property<edge_residual_capacity_t, long, EdgeCapacity> EdgeResidual;
 typedef property<edge_reverse_t, Traits::edge_descriptor, EdgeResidual> EdgeReverse;
 typedef adjacency_list<vecS, vecS, directedS, no_property, EdgeReverse> Graph;
 
+void add_capacity_edge(Graph &g, int from, int to, long capacity){
+    Traits::edge_descriptor foward, rev;
+    tie(foward, tuples::ignore) = add_edge(from, to, g);
+    tie(rev, tuples::ignore) = add_edge(to, from, g);
+    put(edge_capacity, g, foward, capacity);
+    put(edge_capacity, g, rev, 0);
+    put(edge_reverse, g, foward, rev);
+    put(edge_reverse, g, rev, foward);
+}
+
 int main(){
     ios_base::sync_with_stdio(false);
+    cin.tie(0);
     int t;
     cin >> t;
     for(int i = 0; i < t; ++i){
         int n,m;
         cin >> n;
         cin >> m;
-        int *known_scores = new int[n];
-        Graph matches(2*n + 2);
-        int *sources = new int[n*n];
-        int unknown_count = 0;
-        for(int j = 0; j < n; ++j){
-            known_scores[j] = 0;
-            for(int k = 0; k < n; ++k){
-                sources[j*n + k] = -1;
-            }
-            Traits::edge_descriptor foward, rev;
-            bool dummy;
-            tie(foward, dummy) = add_edge(j + 1, j + 1 + n, matches);
-            tie(rev, dummy) = add_edge(j + 1 + n, j + 1, matches);
-            put(edge_capacity, matches, foward, 0);
-            put(edge_capacity, matches, rev, 0);
-            put(edge_reverse, matches, foward, rev);
-            put(edge_reverse, matches, rev, foward);
-            Traits::edge_descriptor infinite_f;
-            tie(infinite_f, dummy) = add_edge(j + 1 + n, 2*n + 1, matches);
-            tie(rev, dummy) = add_edge(2*n + 1, j + 1 + n, matches);
-            put(edge_capacity, matches, infinite_f, 1024);
-            put(edge_capacity, matches, rev, 0);
-            put(edge_reverse, matches, infinite_f, rev);
-            put(edge_reverse, matches, rev, infinite_f);
-        }
+        vector<int> known_scores(n, 0);
+        vector< pair<int, int> > unknown;
         for(int j = 0; j < m; ++j){
             int a, b, c;
             cin >> a;
@@ -57,88 +46,54 @@ int main(){
             } else if(c == 1){
                 known_scores[a]++;
             } else {
-                unknown_count++;
-                Traits::edge_descriptor edge_to_a, edge_to_b, edge_to_source;
-                bool dummy;
-                int source = n*min(a,b) + max(a,b);
-                if(sources[source] != -1){
-                    tie(edge_to_a, dummy) = edge(sources[source], a + 1, matches);
-                    tie(edge_to_b, dummy) = edge(sources[source], b + 1, matches);
-                    tie(edge_to_source, dummy) = edge(0, sources[source], matches);
-                    int current_cap = get(edge_capacity, matches, edge_to_a);
-                    put(edge_capacity, matches, edge_to_a, current_cap + 1);
-                    put(edge_capacity, matches, edge_to_b, current_cap + 1);
-                    put(edge_capacity, matches, edge_to_source, current_cap + 1);
-                } else {
-                    int new_vertex = add_vertex(matches);
-                    sources[source] = new_vertex;
-                    Traits::edge_descriptor foward, rev;
-                    bool dummy;
-                    tie(foward, dummy) = add_edge(new_vertex, a + 1, matches);
-                    tie(rev, dummy) = add_edge(a + 1, new_vertex, matches);
-                    put(edge_capacity, matches, foward, 1);
-                    put(edge_capacity, matches, rev, 0);
-                    put(edge_reverse, matches, foward, rev);
-                    put(edge_reverse, matches, rev, foward);
-                    tie(foward, dummy) = add_edge(new_vertex, b + 1, matches);
-                    tie(rev, dummy) = add_edge(b + 1, new_vertex, matches);
-                    put(edge_capacity, matches, foward, 1);
-                    put(edge_capacity, matches, rev, 0);
-                    put(edge_reverse, matches, foward, rev);
-                    put(edge_reverse, matches, rev, foward);
-                    tie(foward, dummy) = add_edge(0, new_vertex, matches);
-                    tie(rev, dummy) = add_edge(new_vertex, 0, matches);
-                    put(edge_capacity, matches, foward, 1);
-                    put(edge_capacity, matches, rev, 0);
-                    put(edge_reverse, matches, foward, rev);
-                    put(edge_reverse, matches, rev, foward);
-                }
+                unknown.push_back(make_pair(min(a,b), max(a,b)));
             }
         }
-        int *expected_scores = new int[n];
+        vector<int> expected_scores(n);
         bool bullshit = false;
+        long expected_total = 0;
         for(int j = 0; j < n; j++){
             int s;
             cin >> s;
             expected_scores[j] = s - known_scores[j];
             if(expected_scores[j] < 0){
                 bullshit = true;
-            } else {
-                bool dummy;
-                Traits::edge_descriptor cap_edge;
-                tie(cap_edge, dummy) = edge(j + 1, j + 1 + n, matches);
-                put(edge_capacity, matches, cap_edge, expected_scores[j]);
             }
+            expected_total += expected_scores[j];
         }
-        if(bullshit){
+        // Every unknown game hands out exactly one point, so the missing
+        // points must add up to the number of unknown games.
+        if(bullshit || expected_total != (long)unknown.size()){
             cout << "no\n";
             continue;
         }
-        //for(int j = 0; j < num_vertices(matches); ++j){
-        //    graph_traits<Graph>::out_edge_iterator ei, eiend;
-        //    tie(ei, eiend) = out_edges(j, matches);
-        //    for(; ei != eiend; ++ei){
-        //        cout << "From: " << source(*ei, matches) << " To: " << target(*ei, matches) << " cap: " << get(edge_capacity, matches, *ei) << "\n";
-        //    }
-        //}
-        int flow = push_relabel_max_flow(matches, 0, 2*n + 1);
-        if(flow != unknown_count){
-            cout << "no\n";
-            continue;
-        }
-        bool possible = true;
+        // source -> pair of players (one vertex per pair, capacity = games
+        // between them) -> each of the two players -> sink (missing points).
+        int source = n;
+        int sink = n + 1;
+        Graph matches(n + 2);
         for(int j = 0; j < n; ++j){
-            Traits::edge_descriptor cap_edge;
-            bool dummy;
-            tie(cap_edge, dummy) = edge(j + 1, j + 1 + n, matches);
-            if(get(edge_residual_capacity, matches, cap_edge) != 0){
-                possible = false;
-                cout << "no\n";
-                break;
+            if(expected_scores[j] > 0){
+                add_capacity_edge(matches, j, sink, expected_scores[j]);
             }
         }
-        if(possible){
+        sort(unknown.begin(), unknown.end());
+        for(size_t j = 0; j < unknown.size(); ){
+            size_t k = j;
+            while(k < unknown.size() && unknown[k] == unknown[j]){
+                ++k;
+            }
+            int games = add_vertex(matches);
+            add_capacity_edge(matches, source, games, k - j);
+            add_capacity_edge(matches, games, unknown[j].first, k - j);
+            add_capacity_edge(matches, games, unknown[j].second, k - j);
+            j = k;
+        }
+        long flow = push_relabel_max_flow(matches, source, sink);
+        if(flow == (long)unknown.size()){
             cout << "yes\n";
+        } else {
+            cout << "no\n";
         }
 
 

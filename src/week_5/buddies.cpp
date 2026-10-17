@@ -1,5 +1,8 @@
 #include <iostream>
 #include <string>
+#include <vector>
+#include <algorithm>
+#include <unordered_map>
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/max_cardinality_matching.hpp>
 
@@ -9,7 +12,8 @@ using namespace boost;
 typedef adjacency_list<vecS, vecS, undirectedS> Graph;
 
 int main(){
-    
+    ios_base::sync_with_stdio(false);
+    cin.tie(0);
     int t;
     cin >> t;
     for(int i = 0; i < t; ++i){
@@ -17,35 +21,33 @@ int main(){
         cin >> n;
         cin >> c;
         cin >> f;
-        string dummy;
-        getline(cin, dummy);
-        vector< vector<string> > students(n, vector<string>(c, ""));
+        // Map every characteristic to an integer id and keep each student's
+        // ids sorted, so two students can be compared with a linear merge.
+        std::unordered_map<string, int> ids;
+        vector< vector<int> > students(n, vector<int>(c));
         for(int j = 0; j < n; ++j){
-            for(int k = 0; k < c - 1; ++k){
+            for(int k = 0; k < c; ++k){
                 string property;
-                getline(cin, property, ' ');
-                students[j][k] = property;
+                cin >> property;
+                students[j][k] = ids.insert(make_pair(property, (int)ids.size())).first->second;
             }
-            string property;
-            getline(cin, property);
-            students[j][c-1] = property;
+            sort(students[j].begin(), students[j].end());
         }
-        //for(int j = 0; j < n; ++j){
-        //    for(int k = 0; k < c; ++k){
-        //        cout << students[j][k] << " ";
-        //    }
-        //    cout << "\n";
-        //}
         Graph student_graph(n);
         for(int j = 0; j < n; ++j){
+            const vector<int> &a = students[j];
             for(int k = j + 1; k < n; ++k){
+                const vector<int> &b = students[k];
                 int matching = 0;
-                for(int m = 0; m < c; ++m){
-                    for(int l = 0; l < c; ++l){
-                        if(students[j][m].compare(students[k][l]) == 0){
-                            ++matching;
-                            break;
-                        }
+                int p = 0, q = 0;
+                while(p < c && q < c && matching <= f){
+                    if(a[p] < b[q]){
+                        ++p;
+                    } else if(b[q] < a[p]){
+                        ++q;
+                    } else {
+                        ++matching;
+                        ++p;
                     }
                 }
                 if(matching >= f + 1){
@@ -54,8 +56,7 @@ int main(){
             }
         }
         vector<graph_traits<Graph>::vertex_descriptor> mate(n);
-        bool success = checked_edmonds_maximum_cardinality_matching(student_graph, &mate[0]);
-        assert(success);
+        edmonds_maximum_cardinality_matching(student_graph, &mate[0]);
         int size = matching_size(student_graph, &mate[0]);
         if(size == n/2){
             cout << "not optimal\n";

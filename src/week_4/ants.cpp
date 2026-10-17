@@ -1,5 +1,7 @@
 #include <iostream>
 #include <queue>
+#include <vector>
+#include <climits>
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/dijkstra_shortest_paths.hpp>
 
@@ -8,69 +10,55 @@ using namespace boost;
 using namespace std;
 
 
-typedef pair< int, int> E;
-typedef property< edge_weight_t, vector< int >  > EdgeWeight;
-typedef property< vertex_distance_t, int > VertexDistance;
-typedef property< vertex_color_t, bool> VertexColor;
-typedef adjacency_list<vecS, vecS, undirectedS, VertexColor, EdgeWeight> Graph;
 typedef adjacency_list<vecS, vecS, undirectedS, no_property, property< edge_weight_t, int > > SimpleGraph;
-typedef graph_traits< Graph >::edge_descriptor ed;
-typedef graph_traits< Graph >::vertex_descriptor vd;
-typedef pair<ed, int> edge_with_weight;
+typedef graph_traits< SimpleGraph >::vertex_descriptor vd;
+typedef pair<int, int> E;
 
+
+struct edge_with_weight{
+    int weight;
+    int target;
+    int index;
+    edge_with_weight(int w, int t, int i) : weight(w), target(t), index(i) {}
+};
 
 struct compare_strict{
-    bool operator () (edge_with_weight & a, edge_with_weight & b) const{
-        return a.second > b.second;
+    bool operator () (const edge_with_weight & a, const edge_with_weight & b) const{
+        return a.weight > b.weight;
     }
 };
 
-void buildPrivateNetwork(Graph &forest, int s, int h, Graph &minimalNetwork){
+// Prim from the hive: repeatedly take the cheapest edge leaving the network.
+// best[index] keeps the cheapest time any species offers on that edge.
+void buildPrivateNetwork(const vector< vector<E> > &forest, const int *weights, int h, vector<bool> &visited, vector<int> &best){
     priority_queue< edge_with_weight, vector<edge_with_weight>, compare_strict > to_visit;
-    graph_traits< Graph >::vertex_iterator v, v_end;
-    tie(v,v_end) = vertices(forest);
-    for(; v != v_end; ++v){
-        put(vertex_color, forest, *v, false);
+    fill(visited.begin(), visited.end(), false);
+    for(size_t j = 0; j < forest[h].size(); ++j){
+        to_visit.push(edge_with_weight(weights[forest[h][j].second], forest[h][j].first, forest[h][j].second));
     }
-
-    graph_traits< Graph >::out_edge_iterator e, e_end;
-    tie(e, e_end) = out_edges(h, forest);
-    for(; e != e_end; ++e){
-        to_visit.push(edge_with_weight(*e, get(edge_weight, forest, *e)[s]));
-    }
-    put(vertex_color, forest, h, true);
+    visited[h] = true;
     while(!to_visit.empty()){
-        edge_with_weight  current = to_visit.top();
+        edge_with_weight current = to_visit.top();
         to_visit.pop();
-        bool current_color = get(vertex_color, forest, target(current.first, forest));
-        if(current_color){
+        if(visited[current.target]){
             continue;
         }
-        //cout << "Best next route for the network is from: " << source(current.first, forest) << " to: " << target(current.first, forest) << " with cost " << current.second << "\n";
-        pair<ed, bool> x = edge(source(current.first, forest), target(current.first, forest), minimalNetwork);
-        if(x.second){
-            int cost = get(edge_weight, minimalNetwork, x.first)[0];
-            if(cost >  get(edge_weight, forest, current.first)[s]){
-                put(edge_weight, minimalNetwork, x.first, vector<int>(1, get(edge_weight, forest, current.first)[s]));
-            } 
-        } else {
-            vector<int> tmp_vector(1, get(edge_weight, forest, current.first)[s]);
-            add_edge(source(current.first, forest), target(current.first, forest), tmp_vector, minimalNetwork);
+        if(current.weight < best[current.index]){
+            best[current.index] = current.weight;
         }
-        graph_traits< Graph >::out_edge_iterator e, e_end;
-        tie(e, e_end) = out_edges(target(current.first, forest), forest);
-        for(; e != e_end; ++e){
-            int vertex = target(*e, forest);
-            bool color = get(vertex_color, forest, vertex);
-            if(!color){
-                to_visit.push(edge_with_weight(*e, get(edge_weight, forest, *e)[s]));
-            } 
+        const vector<E> &next = forest[current.target];
+        for(size_t j = 0; j < next.size(); ++j){
+            if(!visited[next[j].first]){
+                to_visit.push(edge_with_weight(weights[next[j].second], next[j].first, next[j].second));
+            }
         }
-        put(vertex_color, forest, target(current.first, forest), true);
+        visited[current.target] = true;
     }
 }
 
 int main(){
+    ios_base::sync_with_stdio(false);
+    cin.tie(0);
     int n;
 
     cin >> n;
@@ -81,36 +69,37 @@ int main(){
         cin >> s;
         cin >> a;
         cin >> b;
-        vector<Graph> networks(s, Graph(t));
-        Graph forest(t);
-        Graph minimalNetwork(t);
+        // forest[v] lists (neighbour, edge index) in input order; species k
+        // reads its times from weights[k*e + edge index].
+        vector< vector<E> > forest(t);
+        vector<E> endpoints(e);
+        vector<int> weights(s * e);
         for(int j = 0; j < e; ++j){
             int e1, e2;
             cin >> e1;
             cin >> e2;
-            vector< int > weights(s, 0);
+            endpoints[j] = E(e1, e2);
+            forest[e1].push_back(E(e2, j));
+            forest[e2].push_back(E(e1, j));
             for(int k = 0; k < s;++k){
-                cin >> weights[k];
+                cin >> weights[k * e + j];
             }
-            add_edge(e1, e2, weights, forest);
         }
-        //cout << "Size: " << s << "\n";
+        vector<int> best(e, INT_MAX);
+        vector<bool> visited(t);
         for(int j = 0; j < s; ++j){
             int h;
             cin >> h;
-            //cout << "Calling with hive: " << h << "\n";
-            buildPrivateNetwork(forest, j, h, minimalNetwork);
+            buildPrivateNetwork(forest, weights.data() + j * e, h, visited, best);
         }
-        graph_traits< Graph >::edge_iterator e_start, e_end;
-        tie(e_start, e_end) = edges(minimalNetwork);
         SimpleGraph result(t);
-        for(; e_start != e_end; ++e_start){
-            add_edge(source(*e_start, minimalNetwork), target(*e_start, minimalNetwork), get(edge_weight, minimalNetwork, *e_start)[0], result);
+        for(int j = 0; j < e; ++j){
+            if(best[j] != INT_MAX){
+                add_edge(endpoints[j].first, endpoints[j].second, best[j], result);
+            }
         }
-        vector<vd> p(num_vertices(result));
-        vector<int> d(num_vertices(result));
-        vd start_point = vertex(a, result);
-        dijkstra_shortest_paths(result, start_point, predecessor_map(&p[0]).distance_map(&d[0]));
+        vector<int> d(t);
+        dijkstra_shortest_paths(result, a, distance_map(&d[0]));
         cout << d[b] << "\n";
     }
 
