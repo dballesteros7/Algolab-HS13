@@ -1,77 +1,36 @@
 #include <iostream>
-#include <algorithm>
 #include <vector>
-#include <cmath>
 
 using namespace std;
 
-void merge(int *a, int p, int q, int r, int *count, int max_value){
-    //cout << "Merging... " << "P: " << p << " Q: " << q << " R: " << r << "\n"; 
-    int *L = new int[q - p + 1 + 1];
-    int *R = new int[r - q + 1];
-    int i, j, k;
-    for(i = 0; i < q - p + 1; i++){
-        L[i] = a[p + i];
-    }
-    L[q - p + 1] = max_value;
-    for(i = 0; i < r - q; i++){
-        R[i] = a[q  + 1 + i];
-    }
-    R[r - q] = max_value;
-    j = 0;
-    k = 0;
-    for(i = p; i <= r; i++){
-        if(L[j] <= R[k]){
-            a[i] = L[j];
-            j++;
-        } else{
-            a[i] = R[k];
-            if(j < (q - p + 1)){
-                int to_swap = (q - p + 1) - j;
-                //cout << to_swap << "\n";
-                (*count) += to_swap;
-                (*count) = (*count) % 10000;
-            } 
-            k++;
-        }
-    }
-}
-
-void merge_sort(int *a, int p, int r, int *count, int max_value){
-    if(p < r){
-        int q = floor((p + r)/2);
-        //cout << "Q: " << q << " P: " << p << " R: " << r << "\n";
-        merge_sort(a, p, q, count, max_value);
-        merge_sort(a, q + 1, r, count, max_value);
-        merge(a, p, q, r, count, max_value);
-    }
-}
-
-
-
+// Counts inversions of a permutation of 1..N (mod 10000) with a Fenwick
+// tree: for every element, the number of previous elements greater than it.
 int main(){
-    int *numbers;
+    ios_base::sync_with_stdio(false);
+    cin.tie(0);
+    vector<int> tree;
     int t;
     int N;
-    int i, j;
+    int i, j, k;
     int tmp;
-    int count;
-    int *count_pointer;
+    long long count;
     cin >> t;
     for(i = 0; i < t; i++){
         cin >> N;
-        numbers = new int[N];
+        tree.assign(N + 1, 0);
         count = 0;
-        count_pointer = &count;
         for(j = 0; j < N; j++){
             cin >> tmp;
-            numbers[j] = tmp;
+            // j previous elements, minus those smaller than tmp
+            count += j;
+            for(k = tmp; k > 0; k -= k & -k){
+                count -= tree[k];
+            }
+            for(k = tmp; k <= N; k += k & -k){
+                tree[k]++;
+            }
         }
-        merge_sort(numbers, 0, N - 1, count_pointer, N + 1);
-        //for(j = 0; j < N; j++){
-       //     cout << numbers[j] << "\n";
-        //}
-        cout << count << "\n";
+        cout << count % 10000 << "\n";
     }
     return 0;
 }

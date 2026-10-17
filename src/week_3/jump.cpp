@@ -1,58 +1,44 @@
 #include<iostream>
-#include<queue>
-#include<utility>
 #include<vector>
-#include<algorithm>
 
 using namespace std;
 
-struct node{
-    
-    bool operator()(const pair<int,long>& x, const pair<int,long>& y) const {
-        return x.second > y.second;
-    }
-};
 int main(){
     ios_base::sync_with_stdio(false);
+    cin.tie(0);
     int n, k, t;
-    int i, j, m;
+    int i, j;
     vector<long> costs;
-    priority_queue<pair<int, long>, vector< pair<int,long> >, node> what_i_need;
+    // Sliding window minimum: indices with increasing costs, the front
+    // is the cheapest position among the last k
+    vector<int> window;
+    int head, tail;
     int tmp;
-    pair<int,long> x;
     cin >> t;
-    
+
     for(i = 0; i < t; i++){
         cin >> n;
         cin >> k;
-        costs = vector<long>();
-        costs.reserve(n);
-        what_i_need = priority_queue<pair<int, long>, vector< pair<int,long> >, node>();
+        costs.resize(n);
+        window.resize(n);
+        head = 0;
+        tail = 0;
         for(j = 0; j < n; j++){
             cin >> tmp;
             if(j > k){
-                while(true){
-                    pair<int,long> w = what_i_need.top();
-                    if(w.first >= j - k){
-                        costs.push_back(tmp + w.second);
-                        x = pair<int,long>();
-                        x.first = j;
-                        x.second = tmp + w.second;
-                        what_i_need.push(x);
-                        break;
-                    } else {
-                        what_i_need.pop();
-                    }
+                while(window[head] < j - k){
+                    head++;
                 }
+                costs[j] = tmp + costs[window[head]];
             } else {
-                costs.push_back(tmp);
-                x = pair<int,long>();
-                x.first = j;
-                x.second = tmp;
-                what_i_need.push(x);
+                costs[j] = tmp;
             }
+            while(tail > head && costs[window[tail - 1]] >= costs[j]){
+                tail--;
+            }
+            window[tail++] = j;
         }
         cout << costs[n-1] << "\n";
     }
-    
+
 }

@@ -1,141 +1,70 @@
 #include <iostream>
-#include <set>
 #include <vector>
-#include <algorithm>
 
 using namespace std;
 
 int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(0);
     int M, N, K;
     int P;
     int i, j, k;
     int tmp;
-    int *left, *right, *suspicion;
-    vector< set<int> > left_cases;
-    vector< set<int> > right_cases;
-    set<int> left_set, right_set;
+    int unequal;
+    // genuine -> appeared in a balanced weighing
+    // lighter / heavier -> number of unbalanced weighings in which the coin
+    // was on the lighter / heavier side
+    vector<bool> genuine;
+    vector<int> lighter, heavier;
+    vector<int> pan;
     char comparison;
     cin >> M;
     for (i = 0; i < M; i++) {
-        left_cases = vector< set<int> >();
-        right_cases = vector< set<int> >();
         cin >> N;
         cin >> K;
-        suspicion = new int[N+1];
-        for (j = 0; j <= N; j++) {
-            suspicion[j] = 0;
-        }
+        genuine.assign(N + 1, false);
+        lighter.assign(N + 1, 0);
+        heavier.assign(N + 1, 0);
+        unequal = 0;
         for (j = 0; j < K; j++) {
             cin >> P;
-            left = new int[P];
-            right = new int[P];
-            for (k = 0; k < P * 2; k++) {
+            pan.resize(2 * P);
+            for (k = 0; k < 2 * P; k++) {
                 cin >> tmp;
-                if (k < P) {
-                    left[k] = tmp;
-                } else {
-                    right[k - P] = tmp;
-                }
+                pan[k] = tmp;
             }
             cin >> comparison;
             if (comparison == '=') {
-                for (k = 0; k < P; k++) {
-                    suspicion[left[k]] = 3;
-                    suspicion[right[k]] = 3;
+                for (k = 0; k < 2 * P; k++) {
+                    genuine[pan[k]] = true;
                 }
-            } else if (comparison == '<') {
-                left_set = set<int>();
-                right_set = set<int>();
-                for (k = 0; k < P; k++) {
-                    if (suspicion[left[k]] == 0 || suspicion[left[k]] == 2) {
-                        suspicion[left[k]] = 2;
-                        left_set.insert(left[k]);
-                    } else {
-                        suspicion[left[k]] = 3;
-                    }
-                    if (suspicion[right[k]] == 0 || suspicion[right[k]] == 1) {
-                        suspicion[right[k]] = 1;
-                        right_set.insert(right[k]);
-                    } else {
-                        suspicion[right[k]] = 3;
-                    }
-                }
-                left_cases.push_back(left_set);
-                right_cases.push_back(right_set);
-
             } else {
-                left_set = set<int>();
-                right_set = set<int>();
+                // '<' -> left pan lighter, '>' -> left pan heavier
+                vector<int> &left_side = (comparison == '<') ? lighter : heavier;
+                vector<int> &right_side = (comparison == '<') ? heavier : lighter;
                 for (k = 0; k < P; k++) {
-                    if (suspicion[left[k]] == 0 || suspicion[left[k]] == 1) {
-                        suspicion[left[k]] = 1;
-                        right_set.insert(left[k]);
-                    } else {
-                        suspicion[left[k]] = 3;
-                    }
-                    if (suspicion[right[k]] == 0 || suspicion[right[k]] == 2) {
-                        suspicion[right[k]] = 2;
-                        left_set.insert(right[k]);
-                    } else {
-                        suspicion[right[k]] = 3;
-                    }
+                    left_side[pan[k]]++;
+                    right_side[pan[P + k]]++;
                 }
-                left_cases.push_back(left_set);
-                right_cases.push_back(right_set);
-            }
-            delete [] left;
-            delete [] right;
-        }
-        for (k = 0; k < left_cases.size(); k++) {
-            set<int>::iterator it;
-            
-            it = left_cases[k].begin();
-            while(it != left_cases[k].end()){
-                if(suspicion[*it] == 3){
-                    left_cases[k].erase(it++);
-                } else {
-                    it++;
-                }
-            }
-            it = right_cases[k].begin();
-            while(it != right_cases[k].end()){
-                if(suspicion[*it] == 3){
-                    right_cases[k].erase(it++);
-                } else {
-                    it++;
-                }
-            }
-            if(left_cases[k].size() == 0 && right_cases[k].size() == 1){
-                cout << *(right_cases[k].begin());
-                cout << "\n";
-                break;
-            } else if(left_cases[k].size() == 1 && right_cases[k].size() == 0){
-                cout << *(left_cases[k].begin());
-                cout << "\n";
-                break;
+                unequal++;
             }
         }
-        if (k == left_cases.size()){
-            j = 0;
-            int red_herring;
-            for(k = 1; k <= N; k++){
-                if(suspicion[k] != 3){
-                    j++;
-                    red_herring = k;
-                    if(j > 1){
-                        break;
-                    }
-                }
-            }
-            if(j == 1){
-                cout << red_herring << "\n";
-            } else {
-                cout << 0 << "\n";
+        // The false coin is in every unbalanced weighing, always on the same
+        // side, and never in a balanced one.
+        int candidates = 0;
+        int false_coin = 0;
+        for (k = 1; k <= N && candidates < 2; k++) {
+            if (!genuine[k] && (lighter[k] == unequal || heavier[k] == unequal)) {
+                candidates++;
+                false_coin = k;
             }
         }
-        delete [] suspicion;
+        if (candidates == 1) {
+            cout << false_coin << "\n";
+        } else {
+            cout << 0 << "\n";
+        }
     }
-
 
     return 0;
 }

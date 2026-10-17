@@ -4,47 +4,31 @@ using namespace std;
 
 int main()
 {
+   std::ios_base::sync_with_stdio(false);
+   cin.tie(0);
    int n, i, bitvalue;
-   int pairs_count, sum_odd_ones, sum_even_ones, zeros, ones;
-   
+   // Number of prefixes (including the empty one) with even/odd sum.
+   // x_i..x_j is even iff prefixes j and i-1 have the same parity.
+   long long even_prefixes, odd_prefixes, pairs_count;
+   int parity;
+
    cin >> n;
-   
-   i = 0;
-   
-   pairs_count = 0;
-   sum_odd_ones = 0;
-   sum_even_ones = 0;
-   zeros = 0;
-   ones = 0;
-   while (i < n){
+
+   even_prefixes = 1;
+   odd_prefixes = 0;
+   parity = 0;
+   for (i = 0; i < n; i++){
        cin >> bitvalue;
-       if (bitvalue == 0){
-           zeros++;
-           pairs_count++;
-           if (ones >= 2){
-               if (ones % 2 == 0){
-                   pairs_count += ones/2 + sum_odd_ones;
-               } else {
-                   pairs_count += (ones - 1)/2 + sum_even_ones;
-               }
-           }
+       parity ^= bitvalue & 1;
+       if (parity == 0){
+           even_prefixes++;
        } else {
-           pairs_count += (zeros)*(zeros-1)/2;
-           ones++;
-           if (ones % 2 == 0){
-               sum_even_ones += zeros;
-               pairs_count += (sum_odd_ones) + ones/2;
-           } else {
-               sum_odd_ones += zeros;
-               pairs_count += (sum_even_ones) + (ones - 1)/2;
-           }
-           zeros = 0;
+           odd_prefixes++;
        }
-       i++;
    }
-   pairs_count += (zeros-1)*(zeros)/2;
-   
+   pairs_count = even_prefixes*(even_prefixes - 1)/2 + odd_prefixes*(odd_prefixes - 1)/2;
+
    cout << pairs_count;
-   
+
    return 0;
 }

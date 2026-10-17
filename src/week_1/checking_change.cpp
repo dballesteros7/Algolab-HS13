@@ -1,8 +1,11 @@
 #include <iostream>
+#include <climits>
 
 using namespace std;
 
 int main(){
+    ios_base::sync_with_stdio(false);
+    cin.tie(0);
 
     int test_cases;
     int test_counter = 0;
@@ -40,30 +43,20 @@ int main(){
             i++;
         }
         
+        // INT_MAX - 1 marks "not possible", so +1 never overflows
         minima = new int[max_coin + 1];
         minima[0] = 0;
         for(i = 1; i <= max_coin; i++){
-            minima[i] = -1;
-        }
-        
-        for(i = 1; i <= max_coin; i++){
+            minima[i] = INT_MAX - 1;
             for(j = 0; j < c; j++){
-                if(currencies[j] == i){
-                    minima[i] = 1;
-                } else if (currencies[j] < i) {
-                    if(minima[i - currencies[j]] != -1){
-                        if(minima[i] == -1){
-                            minima[i] = 1 + minima[i - currencies[j]];
-                        } else {
-                            minima[i] = min(1 + minima[i - currencies[j]], minima[i]);
-                        }
-                    }
+                if(currencies[j] <= i){
+                    minima[i] = min(minima[i], 1 + minima[i - currencies[j]]);
                 }
             }
         }
         
         for (i = 0; i < m; i++){
-            if (minima[coins_to_generate[i]] == -1){
+            if (minima[coins_to_generate[i]] >= INT_MAX - 1){
                 cout << "not possible";
             } else {
                 cout << minima[coins_to_generate[i]];
