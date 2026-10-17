@@ -1,4 +1,5 @@
 #include <iostream>
+#include <vector>
 #include <CGAL/QP_models.h>
 #include <CGAL/QP_functions.h>
 
@@ -14,6 +15,12 @@ typedef CGAL::Quadratic_program<int> Program;
 typedef CGAL::Quadratic_program_solution<ET> Solution;
 
 using namespace std;
+
+struct Investor {
+    long C, R;
+    bool feasible;
+    CGAL::Quotient<ET> variance;
+};
 
 int main(){
     ios_base::sync_with_stdio(false);
@@ -37,22 +44,46 @@ int main(){
                 }
             }
         }
+        // For R > 0, substituting x = R y gives: minimum variance = R^2 f(C/R) with
+        // f(t) = min{ y'Sy : r'y >= 1, c'y <= t, y >= 0 }, which is non-increasing in t.
+        // Every solved investor fixes f at one point, which often decides later investors without a QP.
+        vector<Investor> solved;
         for(int i = 0; i < m; ++i){
-            int C, R, V;
+            long C, R, V;
             cin >> C >> R >> V;
-            portfolio.set_b(0, C);
-            portfolio.set_b(1, R);
-            Solution sol = CGAL::solve_quadratic_program(portfolio, ET());
-            if(sol.is_infeasible()){
-                cout << "No.\n";
-            } else {
-                if(sol.objective_value() <= V){
-                    cout << "Yes.\n";
-                } else {
-                    cout << "No.\n";
+            int answer = -1;
+            if(R > 0){
+                for(size_t k = 0; k < solved.size() && answer < 0; ++k){
+                    const Investor &s = solved[k];
+                    // Compare C'/R' with C/R and f(C'/R') = variance'/R'^2 with V/R^2.
+                    long cost_order = s.C * R - C * s.R;
+                    bool low_variance = s.feasible && s.variance * ET(R * R) <= ET(V) * ET(s.R * s.R);
+                    if(cost_order <= 0 && low_variance){
+                        answer = 1;
+                    } else if(cost_order >= 0 && !low_variance){
+                        answer = 0;
+                    }
                 }
             }
-
+            if(answer < 0){
+                portfolio.set_b(0, C);
+                portfolio.set_b(1, R);
+                // All amounts are >= 0, which the nonnegative solver exploits.
+                Solution sol = CGAL::solve_nonnegative_quadratic_program(portfolio, ET());
+                Investor investor = {C, R, !sol.is_infeasible(), 0};
+                if(investor.feasible){
+                    investor.variance = sol.objective_value();
+                }
+                answer = investor.feasible && investor.variance <= ET(V);
+                if(R > 0){
+                    solved.push_back(investor);
+                }
+            }
+            if(answer == 1){
+                cout << "Yes.\n";
+            } else {
+                cout << "No.\n";
+            }
         }
         cin >> n >> m;
     }

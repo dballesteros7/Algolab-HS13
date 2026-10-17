@@ -18,6 +18,21 @@ using namespace std;
 typedef CGAL::Quadratic_program<int> Program;
 typedef CGAL::Quadratic_program_solution<ET> Solution;
 
+// Exact floor and ceil (to_double alone may be off by one on integral values).
+double floor_to_double(const CGAL::Quotient<ET> &x){
+    double a = floor(CGAL::to_double(x));
+    while(a > x) a -= 1;
+    while(a + 1 <= x) a += 1;
+    return a;
+}
+
+double ceil_to_double(const CGAL::Quotient<ET> &x){
+    double a = ceil(CGAL::to_double(x));
+    while(a < x) a += 1;
+    while(a - 1 >= x) a -= 1;
+    return a;
+}
+
 int main(){
     ios_base::sync_with_stdio(false);
     cout.setf(ios::fixed);
@@ -75,7 +90,7 @@ int main(){
             } else if (sol.is_unbounded()){
                 cout << "unbounded\n";
             } else {
-                int val = floor(-CGAL::to_double(sol.objective_value()));
+                int val = floor_to_double(-sol.objective_value());
                 cout << setprecision(0) << val << "\n";
             }
         } else {
@@ -88,7 +103,7 @@ int main(){
             } else if (sol.is_unbounded()){
                 cout << "unbounded\n";
             } else {
-                int val = ceil(CGAL::to_double(sol.objective_value()));
+                int val = ceil_to_double(sol.objective_value());
                 cout << setprecision(0) << val << "\n";
             }
         }
