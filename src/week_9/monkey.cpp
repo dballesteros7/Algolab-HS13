@@ -1,14 +1,13 @@
 #include <iostream>
 #include <vector>
-#include <queue>
-#include <boost/graph/adjacency_list.hpp>
+#include <limits>
+#include <boost/graph/compressed_sparse_row_graph.hpp>
 #include <boost/graph/strong_components.hpp>
 
 using namespace std;
 using namespace boost;
 
-typedef adjacency_list<vecS,vecS,bidirectionalS> Graph;
-typedef graph_traits<Graph>::out_edge_iterator OutEdgeIter;
+typedef compressed_sparse_row_graph<directedS> Graph;
 
 int main(){
     ios_base::sync_with_stdio(false);
@@ -17,50 +16,39 @@ int main(){
     for(int i = 0; i < t; ++i){
         int n,m;
         cin >> n >> m;
-        Graph island(n);
+        vector< pair<int,int> > roads(m);
         for(int j = 0; j < m; ++j){
-            int a,b;
-            cin >> a >> b;
-            if(a == b){
-                continue;
-            }
-            bool exists = false;
-            tie(tuples::ignore, exists) = edge(a - 1, b - 1, island);
-            if(!exists){
-                add_edge(a - 1, b - 1, island);
-            }
+            cin >> roads[j].first >> roads[j].second;
+            --roads[j].first;
+            --roads[j].second;
         }
-        int *costs = new int[n];
+        Graph island(edges_are_unsorted_multi_pass, roads.begin(), roads.end(), n);
+        vector<int> costs(n);
         for(int j = 0; j < n; ++j){
             cin >> costs[j];
         }
         vector<int> componentNumbering(n);
-        int numComponents = strong_components(island, &componentNumbering[0]);
-        vector<int> componentCosts(numComponents, 100001);
-        for(int j = 0; j < n; ++j){
-           if(costs[j] < componentCosts[componentNumbering[j]]){
-                componentCosts[componentNumbering[j]] = costs[j];
-           }
-        }
-        Graph betterIsland(numComponents);
-        for(int j = 0; j < n; ++j){
-            OutEdgeIter outEdgeBegin, outEdgeEnd;
-            tie(outEdgeBegin, outEdgeEnd) = out_edges(j, island);
-            for(; outEdgeBegin != outEdgeEnd; ++outEdgeBegin){
-                int targetV;
-                targetV = target(*outEdgeBegin, island);
-                if(componentNumbering[j] != componentNumbering[targetV]){
-                    bool exists;
-                    tie(tuples::ignore, exists) = edge(componentNumbering[j], componentNumbering[targetV], betterIsland);
-                    if(!exists){
-                        add_edge(componentNumbering[j], componentNumbering[targetV], betterIsland);
-                    }
-                }
+        int numComponents = strong_components(island,
+                make_iterator_property_map(componentNumbering.begin(), get(vertex_index, island)));
+        // A component needs a station iff no road enters it from another component;
+        // the station then goes to its cheapest location.
+        vector<bool> reachable(numComponents, false);
+        for(int j = 0; j < m; ++j){
+            int from = componentNumbering[roads[j].first];
+            int to = componentNumbering[roads[j].second];
+            if(from != to){
+                reachable[to] = true;
             }
         }
-        int minimalCost = 0;
+        vector<int> componentCosts(numComponents, numeric_limits<int>::max());
+        for(int j = 0; j < n; ++j){
+            if(costs[j] < componentCosts[componentNumbering[j]]){
+                componentCosts[componentNumbering[j]] = costs[j];
+            }
+        }
+        long long minimalCost = 0;
         for(int j = 0; j < numComponents; ++j){
-            if(in_degree(j, betterIsland) == 0){
+            if(!reachable[j]){
                 minimalCost += componentCosts[j];
             }
         }

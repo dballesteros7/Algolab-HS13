@@ -1,5 +1,6 @@
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/push_relabel_max_flow.hpp>
+#include <algorithm>
 #include <iostream>
 #include <vector>
 
@@ -13,6 +14,16 @@ typedef property<edge_residual_capacity_t, int, EdgeCapacity> EdgeResidualCapaci
 typedef property<edge_reverse_t, Traits::edge_descriptor, EdgeResidualCapacity> EdgeReverse;
 typedef adjacency_list<vecS, vecS, directedS, no_property, EdgeReverse> Graph;
 
+void add_unit_edge(int u, int v, Graph &field){
+    Edge e, reverse_e;
+    tie(e, tuples::ignore) = add_edge(u, v, field);
+    tie(reverse_e, tuples::ignore) = add_edge(v, u, field);
+    put(edge_capacity, field, e, 1);
+    put(edge_capacity, field, reverse_e, 0);
+    put(edge_reverse, field, e, reverse_e);
+    put(edge_reverse, field, reverse_e, e);
+}
+
 int main(){
     ios_base::sync_with_stdio(false);
     int T;
@@ -20,47 +31,33 @@ int main(){
     for(int i = 0; i < T; ++i){
         int w, n;
         cin >> w >> n;
-        Graph field(2*(w + 1));
-        for(int j = 0; j <= w; ++j){
-            Edge tight_edge, dummy_edge;
-            tie(tight_edge, tuples::ignore) = add_edge(2*j, 2*j + 1, field);
-            tie(dummy_edge, tuples::ignore) = add_edge(2*j + 1, 2*j, field);
-            put(edge_capacity, field, tight_edge, 1);
-            put(edge_capacity, field, dummy_edge, 0);
-            put(edge_reverse, field, tight_edge, dummy_edge);
-            put(edge_reverse, field, dummy_edge, tight_edge);
-        }
+        // A brick spanning the whole width is a layer on its own.
+        int full_bricks = 0;
+        vector< pair<int,int> > bricks;
+        bricks.reserve(n);
         for(int j = 0; j < n; ++j){
             int a,b;
             cin >> a >> b;
-            Edge brick, dummy_brick, possible_brick;
-            bool duplicate;
-            if(a < b){
-                tie(possible_brick, duplicate) = edge(2*a + 1, 2*b, field);
+            if(a > b) swap(a, b);
+            if(b - a == w){
+                ++full_bricks;
             } else {
-                tie(possible_brick, duplicate) = edge(2*b + 1, 2*a, field);
-            }
-            if(duplicate && (a - b < w) && (b -a < w)){
-                continue;
-            } else if(duplicate){
-                int cap = get(edge_capacity, field, possible_brick);
-                put(edge_capacity, field, possible_brick, cap + 1);
-            } else {
-                if(a < b){
-                    tie(brick, tuples::ignore) = add_edge(2*a + 1, 2*b, field); 
-                    tie(dummy_brick, tuples::ignore) = add_edge(2*b, 2*a + 1, field);
-                } else {
-                    tie(brick, tuples::ignore) = add_edge(2*b + 1, 2*a, field);
-                    tie(dummy_brick, tuples::ignore) = add_edge(2*a, 2*b + 1, field);
-                }
-                put(edge_capacity, field, brick, 1);
-                put(edge_capacity, field, dummy_brick, 0);
-                put(edge_reverse, field, brick, dummy_brick);
-                put(edge_reverse, field, dummy_brick, brick);
+                bricks.push_back(make_pair(a, b));
             }
         }
-        int flow;
-        flow = push_relabel_max_flow(field, 1, 2*w);
-        cout << flow << "\n";
+        // Every crack is used by at most one layer, so a second copy of a
+        // shorter brick never helps.
+        sort(bricks.begin(), bricks.end());
+        bricks.erase(unique(bricks.begin(), bricks.end()), bricks.end());
+        // Crack j is split into 2j (in) and 2j + 1 (out) joined by a unit edge.
+        Graph field(2*(w + 1));
+        for(int j = 1; j < w; ++j){
+            add_unit_edge(2*j, 2*j + 1, field);
+        }
+        for(size_t j = 0; j < bricks.size(); ++j){
+            add_unit_edge(2*bricks[j].first + 1, 2*bricks[j].second, field);
+        }
+        int flow = push_relabel_max_flow(field, 1, 2*w);
+        cout << full_bricks + flow << "\n";
     }
 }
