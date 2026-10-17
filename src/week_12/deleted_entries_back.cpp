@@ -1,5 +1,7 @@
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/biconnected_components.hpp>
+#include <iostream>
+#include <vector>
 #include <queue>
 
 using namespace std;
@@ -50,6 +52,8 @@ int new_color(int colorA, int colorB){
 }
 
 int main(){
+    ios_base::sync_with_stdio(false);
+    cin.tie(0);
 
     int t;
     cin >> t;
@@ -73,8 +77,8 @@ int main(){
             cout << "no\n";
             continue;
         }
-        int *colors = new int[n];
-        int root;
+        vector<int> colors(n);
+        int root = 0;
         vector< vector<int> > successors(n, vector<int>());
         for(int j = 0; j < n; ++j){
             if(predecessors[j] != j){
@@ -92,14 +96,14 @@ int main(){
                 colors[j] = 1;
             }
         }
-        int *reverse_discover_map = new int[n + 1];
+        vector<int> reverse_discover_map(n + 1);
         for(int j = 0; j < n; ++j){
             reverse_discover_map[discover_time[j]] = j;
         }
         while(!to_visit.empty()){
             int next = to_visit.front();
             to_visit.pop();
-            for(int j = 0; j < successors[next].size(); ++j){
+            for(size_t j = 0; j < successors[next].size(); ++j){
                 int next_next = successors[next][j];
                 int next_color = new_color(colors[predecessors[next_next]], colors[reverse_discover_map[lowpoint[next_next]]]);
                 colors[next_next] = next_color;
@@ -121,17 +125,17 @@ int main(){
         }
         cout << "yes\n";
         cout << color_1.size();
-        for(int j = 0; j < color_1.size(); ++j){
+        for(size_t j = 0; j < color_1.size(); ++j){
             cout << " " << color_1[j];
         }
         cout << "\n";
         cout << color_2.size();
-        for(int j = 0; j < color_2.size(); ++j){
+        for(size_t j = 0; j < color_2.size(); ++j){
             cout << " " << color_2[j];
         }
         cout << "\n";
         cout << color_3.size();
-        for(int j = 0; j < color_3.size(); ++j){
+        for(size_t j = 0; j < color_3.size(); ++j){
             cout << " " << color_3[j];
         }
         cout << "\n";
