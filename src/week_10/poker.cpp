@@ -1,6 +1,5 @@
 #include <iostream>
 #include <vector>
-#include <map>
 
 using namespace std;
 
@@ -11,104 +10,73 @@ int main(){
     for(int i = 0; i < t; ++i){
         int n;
         cin >> n;
-        int *lengths = new int[n];
+        vector<int> lengths(n);
         for(int j = 0; j < n; ++j){
             cin >> lengths[j];
         }
-        int **chips = new int*[n];
+        // chips[j][k] is the colour of the k-th chip from the bottom of stack j.
+        vector< vector<int> > chips(n);
         for(int j = 0; j < n; ++j){
-            chips[j] = new int[lengths[j]];
+            chips[j].resize(lengths[j]);
             for(int k = lengths[j] - 1; k >= 0; --k){
                 cin >> chips[j][k];
             }
         }
 
-        // Iterate over all chips possibilities of size n
-        int *pointers = new int[n];
+        // A state is the number of chips left on each stack, stored in mixed
+        // radix: removing chips only lowers the index, so a single forward
+        // sweep sees every successor state before the state itself.
+        vector<int> stride(n);
+        int states = 1;
         for(int j = 0; j < n; ++j){
-            pointers[j] = -1;
+            stride[j] = states;
+            states *= lengths[j] + 1;
         }
-        map<vector<int>, int> scores;
-        bool condition = true;
-        while(condition){
-            int max = 0;
-            for(int j = 1; j < (1 << n); ++j){
-                vector<int> new_state_positions;
-                for(int k = 0; k < n; ++k){
-                    if((j & (1 << k)) > 0){
-                        new_state_positions.push_back(k);
-                    }
+        // For every set of stacks: how far the index drops and how much is scored
+        // when the top chip is taken from each of them.
+        vector<int> offset(1 << n, 0), gain(1 << n, 0);
+        for(int subset = 1; subset < (1 << n); ++subset){
+            int taken = 0;
+            for(int j = 0; j < n; ++j){
+                if(subset & (1 << j)){
+                    offset[subset] += stride[j];
+                    ++taken;
                 }
-                if(new_state_positions.size() == 0){
-                    cout << "PANIC\n";
-                }
-                bool dispose_subset = false;
-                for(int k = 0; k < new_state_positions.size(); ++k){
-                    if(pointers[new_state_positions[k]] == -1){
-                        dispose_subset = true;
-                        break;
-                    }
-                }
-                if(dispose_subset){
+            }
+            gain[subset] = taken > 1 ? 1 << (taken - 2) : 0;
+        }
+        vector<int> scores(states, 0);
+        vector<int> heights(n, 0), top(n);
+        for(int state = 1; state < states; ++state){
+            for(int j = 0; heights[j]++ == lengths[j]; ++j){
+                heights[j] = 0;
+            }
+            for(int j = 0; j < n; ++j){
+                top[j] = heights[j] > 0 ? chips[j][heights[j] - 1] : -1;
+            }
+            int best = 0;
+            int handled = 0;
+            for(int j = 0; j < n; ++j){
+                if(top[j] == -1 || (handled & (1 << j))){
                     continue;
                 }
-                int color = chips[new_state_positions[0]][pointers[new_state_positions[0]]];
-                for(int k = 1; k < new_state_positions.size(); ++k){
-                    if(chips[new_state_positions[k]][pointers[new_state_positions[k]]] != color){
-                        dispose_subset = true;
-                        break;
+                // Stacks showing the same colour as stack j on top.
+                int group = 0;
+                for(int k = j; k < n; ++k){
+                    if(top[k] == top[j]){
+                        group |= 1 << k;
                     }
                 }
-                if(dispose_subset){
-                    continue;
-                }
-                for(int k = 0; k < new_state_positions.size(); ++k){
-                    //cout << new_state_positions[k] << " ";
-                }
-                //cout << "\n";
-                vector<int> new_state(n);
-                for(int k = 0; k < n; ++k){
-                    new_state[k] = pointers[k];
-                }
-                for(int k = 0; k < new_state_positions.size(); ++k){
-                    new_state[new_state_positions[k]]--;
-                }
-                int value;
-                if(new_state_positions.size() > 1){
-                    value = scores[new_state] + (1 << (new_state_positions.size() - 2));
-                } else {
-                    value = scores[new_state];
-                }
-                if(value > max){
-                    max = value;
+                handled |= group;
+                for(int subset = group; subset > 0; subset = (subset - 1) & group){
+                    int value = scores[state - offset[subset]] + gain[subset];
+                    if(value > best){
+                        best = value;
+                    }
                 }
             }
-            vector<int> current_state(n);
-            for(int j = 0; j < n; ++j){
-                current_state[j] = pointers[j];
-            }
-            scores.insert(pair<vector<int>, int>(current_state, max));
-            for(int j = n - 1; j >= 0; --j){
-                pointers[j]++;
-                if(pointers[j] == lengths[j]){
-                    pointers[j] = -1;
-                } else {
-                    break;
-                }
-            }
-            bool sum = true;
-            for(int j = 0; j < n; ++j){
-                sum &= (pointers[j] == -1);
-            }
-            if(sum){
-                condition = false;
-            }
+            scores[state] = best;
         }
-        vector<int> final_state(n);
-        for(int j = 0; j < n; ++j){
-            final_state[j] = lengths[j] - 1;
-        }
-        cout << scores[final_state] << "\n";
+        cout << scores[states - 1] << "\n";
     }
-
 }

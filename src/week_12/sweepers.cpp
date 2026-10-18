@@ -1,6 +1,7 @@
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/push_relabel_max_flow.hpp>
 #include <queue>
+#include <vector>
 #include <iostream>
 
 using namespace boost;
@@ -13,18 +14,28 @@ typedef property<edge_residual_capacity_t, int, EdgeCap> EdgeRes;
 typedef property<edge_reverse_t, Edge, EdgeRes> EdgeRev;
 typedef adjacency_list<vecS, vecS, directedS, no_property, EdgeRev> Graph;
 
+// Adds the arc a->b with the given capacity and its reverse arc
+void add_capacity_edge(int a, int b, int capacity, Graph &uu){
+    Edge forward, backward;
+    tie(forward, tuples::ignore) = add_edge(a, b, uu);
+    tie(backward, tuples::ignore) = add_edge(b, a, uu);
+    put(edge_capacity, uu, forward, capacity);
+    put(edge_capacity, uu, backward, 0);
+    put(edge_reverse, uu, forward, backward);
+    put(edge_reverse, uu, backward, forward);
+}
+
 int main(){
+    ios_base::sync_with_stdio(false);
+    cin.tie(0);
     int t;
     cin >> t;
     for(int i = 0; i < t; ++i){
         int n,m,s;
         cin >> n >> m >> s;
-        int *sweepers = new int[s];
-        int *doors = new int[s];
-        int *degrees = new int[n];
-        for(int j = 0; j < n; ++j){
-            degrees[j] = 0;
-        }
+        vector<int> sweepers(s);
+        vector<int> doors(s);
+        vector<int> degrees(n, 0);
         for(int j = 0; j < s; ++j){
             cin >> sweepers[j];
             degrees[sweepers[j]]++;
@@ -37,19 +48,8 @@ int main(){
         for(int j = 0; j < m; ++j){
             int a,b;
             cin >> a >> b;
-            graph_traits<Graph>::edge_descriptor f_edge, b_edge, dummy;
-            tie(f_edge, tuples::ignore) = add_edge(a,b, uu);
-            tie(dummy, tuples::ignore) = add_edge(b,a,uu);
-            put(edge_capacity, uu, f_edge, 1);
-            put(edge_capacity, uu, dummy, 0);
-            put(edge_reverse, uu, f_edge, dummy);
-            put(edge_reverse, uu, dummy, f_edge);
-            tie(b_edge, tuples::ignore) = add_edge(b,a, uu);
-            tie(dummy, tuples::ignore) = add_edge(a,b,uu);
-            put(edge_capacity, uu, b_edge, 1);
-            put(edge_capacity, uu, dummy, 0);
-            put(edge_reverse, uu, b_edge, dummy);
-            put(edge_reverse, uu, dummy, b_edge);
+            add_capacity_edge(a, b, 1, uu);
+            add_capacity_edge(b, a, 1, uu);
             degrees[a]++;
             degrees[b]++;
         }
@@ -65,22 +65,11 @@ int main(){
             continue;
         }
         for(int j = 0; j < s; ++j){
-            graph_traits<Graph>::edge_descriptor in_edge, out_edge, dummy;
-            tie(in_edge, tuples::ignore) = add_edge(n, sweepers[j], uu);
-            tie(dummy, tuples::ignore) = add_edge(sweepers[j], n, uu);
-            put(edge_capacity, uu, in_edge, 1);
-            put(edge_capacity, uu, dummy, 0);
-            put(edge_reverse, uu, in_edge, dummy);
-            put(edge_reverse, uu, dummy, in_edge);
-
-            tie(out_edge, tuples::ignore) = add_edge(doors[j], n + 1, uu);
-            tie(dummy, tuples::ignore) = add_edge(n + 1, doors[j], uu);
-            put(edge_capacity, uu, out_edge, 1);
-            put(edge_capacity, uu, dummy, 0);
-            put(edge_reverse, uu, out_edge, dummy);
-            put(edge_reverse, uu, dummy, out_edge);
+            add_capacity_edge(n, sweepers[j], 1, uu);
+            add_capacity_edge(doors[j], n + 1, 1, uu);
         }
-        bool *visited = new bool[n];
+        // Every room with corridors (or sweepers/doors) must be reachable
+        vector<bool> visited(n + 2);
         for(int j = 0; j < n; ++j){
             visited[j] = (degrees[j] == 0);
         }

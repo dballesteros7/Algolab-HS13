@@ -1,6 +1,7 @@
 #include <boost/graph/adjacency_list.hpp>
-#include <boost/graph/push_relabel_max_flow.hpp>
+#include <boost/graph/boykov_kolmogorov_max_flow.hpp>
 #include <iostream>
+#include <vector>
 
 
 using namespace std;
@@ -13,6 +14,8 @@ typedef property<edge_reverse_t, Traits::edge_descriptor, EdgeResidualCapacity> 
 typedef adjacency_list<vecS, vecS, directedS, no_property, EdgeReverse> Graph;
 
 int main(){
+    ios_base::sync_with_stdio(false);
+    cin.tie(0);
     int t;
     cin >> t;
     for(int i = 0; i < t; ++i){
@@ -99,16 +102,12 @@ int main(){
             tie(useless, tuples::ignore) = edge(2*(x*n + y), 2*(x*n + y) + 1, castle);
             put(edge_capacity, castle, useless, 0);
         }
-        int flow = push_relabel_max_flow(castle, 2*n*m, 2*n*m + 1);
+        // Boykov-Kolmogorov is considerably faster than push-relabel on grid graphs
+        vector<default_color_type> color(2*n*m + 2);
+        vector<long> distance(2*n*m + 2);
+        vector<Traits::edge_descriptor> predecessor(2*n*m + 2);
+        int flow = boykov_kolmogorov_max_flow(castle, get(edge_capacity, castle), get(edge_residual_capacity, castle), get(edge_reverse, castle),
+                                              &predecessor[0], &color[0], &distance[0], get(vertex_index, castle), 2*n*m, 2*n*m + 1);
         cout << flow << "\n";
-        graph_traits<Graph>::vertex_iterator u_iter, u_end;
-        graph_traits<Graph>::out_edge_iterator ei, e_end;
-        for(tie(u_iter, u_end) = vertices(castle); u_iter != u_end; ++u_iter){
-            for (tie(ei, e_end) = out_edges(*u_iter, castle); ei != e_end; ++ei){
-                if(get(edge_capacity, castle, *ei) > 0){
-                    //cout << "f " << *u_iter << " " << target(*ei, castle) << " " << (get(edge_capacity, castle, *ei) - get(edge_residual_capacity, castle, *ei)) << "\n";
-                }
-            }
-        }
     }
 }

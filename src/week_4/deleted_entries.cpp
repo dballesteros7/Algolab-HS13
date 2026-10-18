@@ -1,7 +1,4 @@
 #include <iostream>
-#include <stack>
-#include <set>
-#include <deque>
 #include <vector>
 
 using namespace std;
@@ -9,6 +6,8 @@ using namespace std;
 typedef pair<int, int> E;
 
 int main(){
+    ios_base::sync_with_stdio(false);
+    cin.tie(0);
     int t;
     cin >> t;
     for(int i = 0; i < t; ++i){
@@ -17,31 +16,22 @@ int main(){
         cin >> m;
         cin >> k;
         int visited_count = 0;
-        vector< deque<E> > vertices(n, deque<E>());
-        bool* visited = new bool[n];
-        int *color = new int[n];
-        vector< int > *colored = new vector<int>[k];
-        for(int j = 0; j < n; ++j){
-            visited[j] = false;
-            color[j] = 0;
-        }
-        for(int j = 0; j < k; ++j){
-            colored[j] = vector<int>();
-        }
+        vector< vector<int> > vertices(n);
+        vector<bool> visited(n, false);
+        vector<int> color(n, 0);
+        vector< vector<int> > colored(k);
         for(int j = 0; j < m; ++j){
             int a,b;
             cin >> a;
             cin >> b;
-            E tmp(a,b);
-            E tmp2(b,a);
-            vertices[a].push_back(tmp);
-            vertices[b].push_back(tmp2);
+            vertices[a].push_back(b);
+            vertices[b].push_back(a);
         }
         int current_color = 0;
         int first_vertex = 0;
-        stack<E> to_visit;
-        for(int j = 0; j < vertices[first_vertex].size(); ++j){
-            to_visit.push(vertices[first_vertex][j]);
+        vector<E> to_visit;
+        for(size_t j = 0; j < vertices[first_vertex].size(); ++j){
+            to_visit.push_back(E(first_vertex, vertices[first_vertex][j]));
         }
         color[first_vertex] = current_color;
         colored[current_color].push_back(first_vertex);
@@ -49,13 +39,13 @@ int main(){
         ++current_color;
         ++visited_count;
         while(!to_visit.empty()){
-            E current = to_visit.top();
-            to_visit.pop();
+            E current = to_visit.back();
+            to_visit.pop_back();
             if(!visited[current.second]){
-                for(int j = 0; j < vertices[current.second].size(); ++j){
-                    E nextEdge = vertices[current.second][j];
-                    if(!visited[nextEdge.second]){
-                        to_visit.push(nextEdge);
+                const vector<int> &next = vertices[current.second];
+                for(size_t j = 0; j < next.size(); ++j){
+                    if(!visited[next[j]]){
+                        to_visit.push_back(E(current.second, next[j]));
                     }
                 }
                 if(color[current.first] == current_color % k){
@@ -75,7 +65,7 @@ int main(){
                 cout << "yes\n";
                 for(int j = 0; j < k; j++){
                     cout << colored[j].size();
-                    for(int z = 0; z < colored[j].size(); ++z){
+                    for(size_t z = 0; z < colored[j].size(); ++z){
                         cout << " " << colored[j][z];
                     }
                     cout << "\n";

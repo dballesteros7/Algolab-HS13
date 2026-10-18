@@ -1,57 +1,51 @@
 #include <iostream>
-#include <set>
+#include <algorithm>
+#include <climits>
+#include <utility>
 #include <vector>
 
 using namespace std;
 
-struct compare_strict{
-    bool operator()(const vector<int>& a, const vector<int>& b) const{
-        return a[0] < b[0];
-    }
-};
-
 int main(){
+    ios_base::sync_with_stdio(false);
+    cin.tie(0);
     int t;
     int N;
     int i, j;
-    set< vector<int>, compare_strict > ordered_intervals;
+    // (ring position, length), sorted by ring position
+    vector< pair<int,int> > boats;
     int count;
     cin >> t;
     for(i = 0; i < t; i++){
         cin >> N;
         count = 0;
-        ordered_intervals = set< vector<int>, compare_strict>();
+        boats.resize(N);
         for(j = 0; j < N; j++){
-            int l, p;
-            cin >> l;
-            cin >> p;
-            vector<int> tmp = vector<int>();
-            tmp.push_back(p);
-            tmp.push_back(l);
-            ordered_intervals.insert(tmp);
+            cin >> boats[j].second;
+            cin >> boats[j].first;
         }
-        int current_start = -2000000;
-        set< vector<int>, compare_strict >::iterator it = ordered_intervals.begin();
-        int best_deadline = 3000000;
-        while(it != ordered_intervals.end()){
-            int l, p;
-            p = (*it)[0];
-            l = (*it)[1];
+        sort(boats.begin(), boats.end());
+        // current_start -> end of the last boat fixed so far
+        // best_deadline -> earliest end of a boat placed after current_start
+        long long current_start = LLONG_MIN/2;
+        long long best_deadline = LLONG_MAX;
+        for(j = 0; j < N; j++){
+            long long p = boats[j].first;
+            long long l = boats[j].second;
             if(p >= best_deadline){
                 count++;
                 current_start = best_deadline;
-                best_deadline = 3000000;
+                best_deadline = LLONG_MAX;
             }
-            int possible_deadline = max(current_start, p - l) + l;
+            long long possible_deadline = max(current_start, p - l) + l;
             if(possible_deadline <= best_deadline){
                 best_deadline = possible_deadline;
-                it++;
-            } else {
-                it++;
             }
         }
-        count++;
-        
+        if(N > 0){
+            count++;
+        }
+
         cout << count << "\n";
     }
     return 0;

@@ -1,5 +1,6 @@
 #include <iostream>
 #include <stack>
+#include <vector>
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/max_cardinality_matching.hpp>
 
@@ -10,6 +11,7 @@ typedef adjacency_list<vecS, vecS, undirectedS> Graph;
 
 int main(){
     ios_base::sync_with_stdio(false);
+    cin.tie(0);
     int t;
     cin >> t;
     for(int i = 0; i < t; ++i){
@@ -27,12 +29,8 @@ int main(){
             add_edge(a, b + g, network);
         }
         vector<graph_traits<Graph>::vertex_descriptor> mate(g + s);
-        bool success = checked_edmonds_maximum_cardinality_matching(network, &mate[0]);
-        assert(success);
-        bool *visited = new bool[g + s];
-        for(int j = 0; j < s + g; ++j){
-            visited[j] = false;
-        }
+        edmonds_maximum_cardinality_matching(network, &mate[0]);
+        vector<bool> visited(g + s, false);
         stack<int> to_visit;
         for(int j = 0; j < g; ++j){
             if(get(&mate[0], j) == graph_traits<Graph>::null_vertex()){
@@ -45,7 +43,7 @@ int main(){
             if(visited[current])
                 continue;
             if(current < g){
-                int matched = get(&mate[0], current);
+                graph_traits<Graph>::vertex_descriptor matched = mate[current];
                 if(matched == graph_traits<Graph>::null_vertex()){
                     graph_traits<Graph>::out_edge_iterator ei, ei_end;
                     tie(ei, ei_end) = out_edges(current, network);
@@ -62,7 +60,7 @@ int main(){
                     }
                 }
             } else {
-                int matched = get(&mate[0], current);
+                graph_traits<Graph>::vertex_descriptor matched = mate[current];
                 if(matched != graph_traits<Graph>::null_vertex()){
                     if(!visited[matched])
                         to_visit.push(matched);
@@ -87,10 +85,10 @@ int main(){
             }
         }
         cout << ground_cover << " " << sat_cover << "\n";
-        for(int j = 0; j < ground_cover_list.size(); ++j){
+        for(size_t j = 0; j < ground_cover_list.size(); ++j){
             cout << ground_cover_list[j] << " ";
         }
-        for(int j = 0; j < sat_cover_list.size(); ++j){
+        for(size_t j = 0; j < sat_cover_list.size(); ++j){
             if(j == sat_cover_list.size() - 1){
                 cout << sat_cover_list[j] << "\n";
             } else {

@@ -15,6 +15,14 @@ typedef CGAL::Quadratic_program_solution<ET> Solution;
 
 using namespace std;
 
+// Exact floor (to_double alone may round an integral value down to k - 1 + eps).
+double floor_to_double(const CGAL::Quotient<ET> &x){
+    double a = floor(CGAL::to_double(x));
+    while(a > x) a -= 1;
+    while(a + 1 <= x) a += 1;
+    return a;
+}
+
 int main(){
     ios_base::sync_with_stdio(false);
     cout.setf(ios::fixed);
@@ -40,11 +48,12 @@ int main(){
                 dietPlan.set_a(i, j + n, c);
             }
         }
-        Solution sol = CGAL::solve_quadratic_program(dietPlan, ET());
+        // Linear objective and x >= 0: the specialised LP solver is much faster.
+        Solution sol = CGAL::solve_nonnegative_linear_program(dietPlan, ET());
         if(sol.is_infeasible()){
             cout << "No such diet.\n";
         } else {
-            int val = floor(CGAL::to_double(sol.objective_value()));
+            long val = floor_to_double(sol.objective_value());
             cout << setprecision(0) << val << "\n";
         }
         cin >> n >> m;

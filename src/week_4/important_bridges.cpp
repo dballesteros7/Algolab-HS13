@@ -1,4 +1,6 @@
 #include <iostream>
+#include <vector>
+#include <algorithm>
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/biconnected_components.hpp>
 
@@ -19,27 +21,17 @@ namespace boost
 typedef property< edge_component_t, int > EdgeProperty;
 typedef adjacency_list<vecS, vecS, undirectedS, no_property, EdgeProperty> Graph;
 
-struct compare_strict{
-    bool operator () (const pair<int,int> &a, const pair<int,int> &b) const{
-        if(a.first < b.first){
-            return true;
-        } else if (a.first == b.first){
-            return  a.second < b.second;
-        } else {
-            return false;
-        }
-
-    }
-
-};
 int main(){
+    ios_base::sync_with_stdio(false);
+    cin.tie(0);
     int t;
     cin >> t;
     for(int i = 0; i < t; i++){
         int n,m;
         cin >> n;
         cin >> m;
-        Graph cityNetwork(n);
+        // Islands are numbered 1..n.
+        Graph cityNetwork(n + 1);
         for(int j = 0; j < m; j++){
             int e1,e2;
             cin >> e1;
@@ -48,33 +40,24 @@ int main(){
         }
         property_map < Graph, edge_component_t >::type component = get(edge_component, cityNetwork);
         int num_comps = biconnected_components(cityNetwork, component);
-        int *edgesPerComp = new int[num_comps];
-        for(int j = 0; j < num_comps; ++j){
-            edgesPerComp[j] = 0;
-        }
-        vector< vector < pair<int, int> > > inverse_component(num_comps, vector< pair<int,int> >());
+        // A bridge is a biconnected component made of a single edge.
+        vector<int> edgesPerComp(num_comps, 0);
         graph_traits< Graph >::edge_iterator e_i, e_end;
-        tie(e_i, e_end) = edges(cityNetwork);
-        for(; e_i != e_end; ++e_i){
+        for(tie(e_i, e_end) = edges(cityNetwork); e_i != e_end; ++e_i){
             edgesPerComp[component[*e_i]]++;
-            if(source(*e_i, cityNetwork) < target(*e_i, cityNetwork)){
-                inverse_component[component[*e_i]].push_back(pair<int,int>(source(*e_i, cityNetwork), target(*e_i, cityNetwork)));
-            } else {
-                inverse_component[component[*e_i]].push_back(pair<int,int>(target(*e_i, cityNetwork), source(*e_i, cityNetwork)));
+        }
+        vector< pair<int, int> > result;
+        for(tie(e_i, e_end) = edges(cityNetwork); e_i != e_end; ++e_i){
+            if(edgesPerComp[component[*e_i]] == 1){
+                int u = source(*e_i, cityNetwork);
+                int v = target(*e_i, cityNetwork);
+                result.push_back(pair<int,int>(min(u, v), max(u, v)));
             }
         }
-        set< pair<int, int>, compare_strict > result;
-        int criticalBridges = 0;
-        for(int j = 0; j < num_comps; ++j){
-            if(edgesPerComp[j] == 1){
-                ++criticalBridges;
-                result.insert(inverse_component[j][0]);
-            }
-        }
-        cout << criticalBridges << "\n";
-        set< pair< int, int > >::iterator it;
-        for(it = result.begin(); it != result.end(); ++it){
-            cout << (*it).first << " " << (*it).second << "\n";
+        sort(result.begin(), result.end());
+        cout << result.size() << "\n";
+        for(size_t j = 0; j < result.size(); ++j){
+            cout << result[j].first << " " << result[j].second << "\n";
         }
     }
     return 0;

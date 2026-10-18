@@ -4,36 +4,20 @@ using namespace std;
 
 int main()
 {
-   std::ios_base::sync_with_stdio(false);
-   int n, m;
-   int i, j;
-   int current_h;
-   int current_toppled;
-   i = 0;
-   cin >> n;
-   while(i < n){
-       cin >> m;
-       j = 0;
-       current_toppled = 0;
-       current_h = 0;
-       while (j < m){
-           cin >> current_h;
-           if (j <= current_toppled){
-               if ((current_h + j - 1) > current_toppled){
-                current_toppled = current_h + j - 1;
-               }
-           }
-           j++;
-       }
-       if (current_toppled >= m){
-           cout << m;
-           cout << "\n";
-       }
-       else{
-           cout << current_toppled + 1;
-           cout << "\n";
-       }
-       i++;
-   }
-   return 0;
+    std::ios_base::sync_with_stdio(false);
+    cin.tie(0);
+    int t, m;
+    int i, j;
+    double current, sum;
+    cin >> t;
+    for (i = 0; i < t; i++){
+        cin >> m;
+        sum = 0;
+        for (j = 0; j < m; j++){
+            cin >> current;
+            sum += current;
+        }
+        cout << sum << "\n";
+    }
+    return 0;
 }

@@ -1,37 +1,49 @@
 #include <iostream>
+#include <vector>
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/push_relabel_max_flow.hpp>
 using namespace std;
 using namespace boost;
 
-struct vertex_demand_t {
-    typedef vertex_property_tag kind;
-};
-
-typedef adjacency_list_traits<vecS, vecS, bidirectionalS> Traits;
-typedef property<vertex_demand_t, int> DemandProperty;
-typedef property<edge_capacity_t, int> EdgeCapacity;
-typedef property<edge_residual_capacity_t, int, EdgeCapacity> EdgeResidualCap;
+typedef adjacency_list_traits<vecS, vecS, directedS> Traits;
+typedef property<edge_capacity_t, long> EdgeCapacity;
+typedef property<edge_residual_capacity_t, long, EdgeCapacity> EdgeResidualCap;
 typedef property<edge_reverse_t, Traits::edge_descriptor, EdgeResidualCap> EdgeReverse;
-typedef adjacency_list<vecS, vecS, bidirectionalS, DemandProperty, EdgeReverse> Graph;
+typedef adjacency_list<vecS, vecS, directedS, no_property, EdgeReverse> Graph;
+
+void add_capacity_edge(Graph &g, int from, int to, long capacity){
+    Traits::edge_descriptor edge_foward, rev_edge;
+    tie(edge_foward, tuples::ignore) = add_edge(from, to, g);
+    tie(rev_edge, tuples::ignore) = add_edge(to, from, g);
+    put(edge_capacity, g, edge_foward, capacity);
+    put(edge_capacity, g, rev_edge, 0);
+    put(edge_reverse, g, edge_foward, rev_edge);
+    put(edge_reverse, g, rev_edge, edge_foward);
+}
 
 int main(){
     ios_base::sync_with_stdio(false);
+    cin.tie(0);
     int t;
-    int MAX_CAP = 1000000000;
     cin >> t;
     for(int i = 0; i < t; ++i){
         int l, p;
         cin >> l;
         cin >> p;
-        Graph kingdom(2*l + 2);
+        // balance[j] = soldiers available at j minus soldiers that must leave
+        // or stay at j. The c soldiers forced along a path are taken from fi
+        // and handed to fj, so only the optional C - c remain as edges.
+        // Soldiers may walk through locations, hence one vertex per location.
+        vector<long> balance(l);
         for(int j = 0; j < l; ++j){
             int g, d;
             cin >> g;
             cin >> d;
-            put(vertex_demand_t(), kingdom, j, -g);
-            put(vertex_demand_t(), kingdom, j + l, d);
+            balance[j] = g - d;
         }
+        Graph kingdom(l + 2);
+        int source = l;
+        int sink = l + 1;
         for(int j = 0; j < p; ++j){
             int fi, fj, c, bigC;
             cin >> fi;
@@ -39,96 +51,24 @@ int main(){
             cin >> c;
             cin >> bigC;
             if(fi != fj){
-                Traits::edge_descriptor edge_foward, rev_edge;
-                tie(edge_foward, tuples::ignore) = add_edge(fi + l, fj, kingdom);
-                int d_fi = get(vertex_demand_t(), kingdom, fi + l);
-                int d_fj = get(vertex_demand_t(), kingdom, fj);
-                put(vertex_demand_t(), kingdom, fi + l, d_fi + c);
-                put(vertex_demand_t(), kingdom, fj, d_fj - c);
-                put(edge_capacity, kingdom, edge_foward, bigC - c);
-                tie(rev_edge, tuples::ignore) = add_edge(fj, fi + l, kingdom);
-                put(edge_capacity, kingdom, rev_edge, 0);
-                put(edge_reverse, kingdom, edge_foward, rev_edge);
-                put(edge_reverse, kingdom, rev_edge, edge_foward);
-            } else {
-                int supply = get(vertex_demand_t(), kingdom, fi);
-                int demand = get(vertex_demand_t(), kingdom, fi + l);
-                put(vertex_demand_t(), kingdom, fi, supply + c);
-                put(vertex_demand_t(), kingdom, fi + l, demand - c);
-            }
-        }
-        for(int j = 0; j < 2*l; ++j){
-            int demand = get(vertex_demand_t(), kingdom, j);
-            if(demand < 0){
-                Traits::edge_descriptor edge_foward, rev_edge;
-                tie(edge_foward, tuples::ignore) = add_edge(2*l, j, kingdom);
-                put(edge_capacity, kingdom, edge_foward, -demand);
-                tie(rev_edge, tuples::ignore) = add_edge(j, 2*l, kingdom);
-                put(edge_capacity, kingdom, rev_edge, 0);
-                put(edge_reverse, kingdom, edge_foward, rev_edge);
-                put(edge_reverse, kingdom, rev_edge, edge_foward);
-            } else if(demand > 0) {
-                Traits::edge_descriptor edge_foward, rev_edge;
-                tie(edge_foward, tuples::ignore) = add_edge(j, 2*l + 1, kingdom);
-                put(edge_capacity, kingdom, edge_foward, demand);
-                tie(rev_edge, tuples::ignore) = add_edge(2*l + 1, j, kingdom);
-                put(edge_capacity, kingdom, rev_edge, 0);
-                put(edge_reverse, kingdom, edge_foward, rev_edge);
-                put(edge_reverse, kingdom, rev_edge, edge_foward);
-            }
-            if(j < l){
-                if(demand < 0){
-                    Traits::edge_descriptor inner_edge, rev_edge;
-                    tie(inner_edge, tuples::ignore) = add_edge(j, j + l, kingdom);
-                    put(edge_capacity, kingdom, inner_edge, MAX_CAP);
-                    tie(rev_edge, tuples::ignore) = add_edge(j + l, j, kingdom);
-                    put(edge_capacity, kingdom, rev_edge, 0);
-                    put(edge_reverse, kingdom, inner_edge, rev_edge);
-                    put(edge_reverse, kingdom, rev_edge, inner_edge);
-                } else {
-                    Traits::edge_descriptor inner_edge, rev_edge;
-                    tie(inner_edge, tuples::ignore) = add_edge(j, j + l, kingdom);
-                    put(edge_capacity, kingdom, inner_edge, 0);
-                    tie(rev_edge, tuples::ignore) = add_edge(j + l, j, kingdom);
-                    put(edge_capacity, kingdom, rev_edge, MAX_CAP);
-                    put(edge_reverse, kingdom, inner_edge, rev_edge);
-                    put(edge_reverse, kingdom, rev_edge, inner_edge);
+                balance[fi] -= c;
+                balance[fj] += c;
+                if(bigC > c){
+                    add_capacity_edge(kingdom, fi, fj, bigC - c);
                 }
             }
         }
-        //for(int j = 0; j < 2*l + 2; ++j){
-        //    graph_traits<Graph>::out_edge_iterator ei, eiend;
-        //    tie(ei, eiend) = out_edges(j, kingdom);
-        //    cout << "Demand at " << j << ": " << get(vertex_demand_t(), kingdom, j) << "\n" ;
-        //    for(; ei != eiend; ++ei){
-        //        cout << "To: " << target(*ei, kingdom) << " Cap: " << get(edge_capacity, kingdom, *ei) << "\n";
-        //    }
-        //}
-        int flow = push_relabel_max_flow(kingdom, 2*l, 2*l + 1);
-        //graph_traits<Graph>::out_edge_iterator ei, eiend;
-        //tie(ei, eiend) = out_edges(2*l, kingdom);
-        bool bad = false;
-        //for(; ei != eiend; ++ei){
-        //    int res = get(edge_residual_capacity, kingdom, *ei);
-        //    if(res != 0){
-        //        cout << "no\n";
-        //        bad = true;
-        //        break;
-        //    }
-        //}
-        //if(bad){
-        //    continue;
-        //}
-        graph_traits<Graph>::in_edge_iterator ii, iiend;
-        tie(ii, iiend) = in_edges(2*l + 1, kingdom);
-        for(; ii != iiend; ++ii){
-            int res = get(edge_residual_capacity, kingdom, *ii);
-            //cout << edge_flow << "\n";
-            if(res != 0){
-                bad = true;
+        long needed = 0;
+        for(int j = 0; j < l; ++j){
+            if(balance[j] > 0){
+                add_capacity_edge(kingdom, source, j, balance[j]);
+            } else if(balance[j] < 0){
+                add_capacity_edge(kingdom, j, sink, -balance[j]);
+                needed -= balance[j];
             }
         }
-        if(!bad){
+        long flow = push_relabel_max_flow(kingdom, source, sink);
+        if(flow == needed){
             cout << "yes\n";
         } else {
             cout << "no\n";

@@ -1,30 +1,12 @@
 #include <iostream>
-#include <cmath>
 #include <vector>
 #include <algorithm>
 
 using namespace std;
 
-typedef pair<int, pair<int,int> > Triplet;
-
-struct compare_strict{
-    bool operator()(const Triplet& a, const Triplet& b) const{
-        if(a.first > b.first){
-            return true;
-        } else if (a.first == b.first){
-            if(a.second.first < b.second.first){
-                return true;
-            } else if(a.second.first == b.second.first){
-                if(a.second.second < b.second.second){
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-};
-
 int main(){
+    ios_base::sync_with_stdio(false);
+    cin.tie(0);
     int n;
     cin >> n;
     for(int i = 0; i < n; ++i){
@@ -35,53 +17,44 @@ int main(){
             cin >> parasols[j];
         }
         sort(parasols.begin(), parasols.end());
-        bool stop = false;
-        int left_parasol, right_parasol;
-        int bar_loc;
-        vector< Triplet > bar_locations;
-        left_parasol = 0;
-        right_parasol = 0;
-        bar_loc = 0;
-        while(!stop){
-            bool record = false;
-            while(!record){
+        // Sliding window over the sorted parasols: for every left parasol take
+        // the largest window of width <= 200 and place the bar in its middle.
+        // Both window ends only move right, so the candidate locations are
+        // generated in increasing order and no sorting of candidates is needed.
+        int max_locations = 0;
+        int min_distance = 0;
+        vector<int> bar_locations;
+        int right_parasol = 0;
+        for(int left_parasol = 0; left_parasol < p; ++left_parasol){
+            while(right_parasol + 1 < p && parasols[right_parasol + 1] - parasols[left_parasol] <= 200){
                 right_parasol++;
-                if(right_parasol == p || parasols[right_parasol] - parasols[left_parasol] > 200){
-                    record = true;
-                    right_parasol--;
+            }
+            int locations = right_parasol - left_parasol + 1;
+            int width = parasols[right_parasol] - parasols[left_parasol];
+            int max_distance = (width + 1)/2;
+            if(locations > max_locations || (locations == max_locations && max_distance < min_distance)){
+                max_locations = locations;
+                min_distance = max_distance;
+                bar_locations.clear();
+            }
+            if(locations == max_locations && max_distance == min_distance){
+                int sum = parasols[left_parasol] + parasols[right_parasol];
+                if(width % 2 == 0){
+                    bar_locations.push_back(sum/2);
+                } else {
+                    // floor and ceil of the odd midpoint
+                    bar_locations.push_back((sum - 1)/2);
+                    bar_locations.push_back((sum + 1)/2);
                 }
             }
-            if((parasols[left_parasol] + parasols[right_parasol]) % 2 == 0){
-                bar_loc = (parasols[left_parasol] + parasols[right_parasol])/2;
-                int locations = right_parasol - left_parasol + 1;
-                int max_distance = max(bar_loc - parasols[left_parasol], parasols[right_parasol] - bar_loc);
-                bar_locations.push_back(Triplet(locations, pair<int,int>(max_distance, bar_loc)));
-
-            } else {
-                bar_loc = (parasols[left_parasol] + parasols[right_parasol] + 1)/2;
-                int locations = right_parasol - left_parasol + 1;
-                int max_distance = max(bar_loc - parasols[left_parasol], parasols[right_parasol] - bar_loc);
-                bar_locations.push_back(Triplet(locations, pair<int,int>(max_distance, bar_loc)));
-                bar_loc = (parasols[left_parasol] + parasols[right_parasol] - 1)/2;
-                locations = right_parasol - left_parasol + 1;
-                max_distance = max(bar_loc - parasols[left_parasol], parasols[right_parasol] - bar_loc);
-                bar_locations.push_back(Triplet(locations, pair<int,int>(max_distance, bar_loc)));
-            }
             if(right_parasol == p - 1){
-                stop = true;
-            }
-            left_parasol++;
-        }
-        sort(bar_locations.begin(), bar_locations.end(), compare_strict());
-        int max_locations = bar_locations[0].first;
-        int min_distance = bar_locations[0].second.first;
-        cout << max_locations << " " << min_distance << "\n";
-        cout << bar_locations[0].second.second;
-        for(int j = 1; j < bar_locations.size(); ++j){
-            if(bar_locations[j].first < max_locations || bar_locations[j].second.first > min_distance){
                 break;
             }
-            cout << " " << bar_locations[j].second.second;
+        }
+        cout << max_locations << " " << min_distance << "\n";
+        cout << bar_locations[0];
+        for(size_t j = 1; j < bar_locations.size(); ++j){
+            cout << " " << bar_locations[j];
         }
         cout << "\n";
     }

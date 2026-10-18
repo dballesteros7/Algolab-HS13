@@ -1,44 +1,33 @@
-#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <iostream>
 #include <vector>
-#include <queue>
+#include <algorithm>
 #include <utility>
-#include <ctime>
-#include <cmath>
 
 using namespace std;
-using namespace CGAL;
 
-typedef Exact_predicates_inexact_constructions_kernel K;
-typedef Point_2<K> Point;
-typedef pair<int, int> Position;
-typedef priority_queue<Position> MaxHeap;
-typedef priority_queue<Position, vector<Position>, greater<Position> > MinHeap;
+typedef pair<long, long> Point;
 
-vector< pair<Point, Point> > sortLines(Point a1, Point a2, Point b1, Point b2, Point c1, Point c2){
-    vector< pair<Point,Point> > result;
-    if(orientation(a1,a2,b1) == LEFT_TURN){
-        pair<Point,Point> a(a1,a2);
-        result.push_back(a);
-    } else {
-        pair<Point,Point> a(a2,a1);
-        result.push_back(a);
+// Sign of the cross product (q - p) x (r - p): 1 for a left turn, -1 for a right turn.
+// The coordinates are integers, so with 128-bit products this is exact.
+int orientation(const Point &p, const Point &q, const Point &r){
+    __int128 left = (__int128)(q.first - p.first)*(r.second - p.second);
+    __int128 right = (__int128)(q.second - p.second)*(r.first - p.first);
+    return (left > right) - (left < right);
+}
+
+// Orient the three lines so that the triangle lies on their left side. The points of the
+// next line lie on the boundary of the triangle; if the first one is the shared vertex use
+// the second one.
+void sortLines(Point q[6]){
+    for(int j = 0; j < 6; j += 2){
+        int oriented = orientation(q[j], q[j+1], q[(j+2)%6]);
+        if(oriented == 0){
+            oriented = orientation(q[j], q[j+1], q[(j+3)%6]);
+        }
+        if(oriented < 0){
+            swap(q[j], q[j+1]);
+        }
     }
-    if(orientation(b1,b2,c1) == LEFT_TURN){
-        pair<Point,Point> b(b1,b2);
-        result.push_back(b);
-    } else {
-        pair<Point,Point> b(b2,b1);
-        result.push_back(b);
-    }
-    if(orientation(c1,c2,a1) == LEFT_TURN){
-        pair<Point,Point> c(c1,c2);
-        result.push_back(c);
-    } else {
-        pair<Point,Point> c(c2,c1);
-        result.push_back(c);
-    }
-    return result;
 }
 
 int main(){
@@ -49,75 +38,52 @@ int main(){
         int m,n;
         cin >> m >> n;
         vector<Point> path(m);
-        vector<int> *positions = new vector<int> [m - 1];
-        vector<int>::iterator *pointers = new vector<int>::iterator [m-1];
-        bool *inTriangle = new bool[m];
         for(int j = 0; j < m; ++j){
-            double px, py;
+            long px, py;
             cin >> px >> py;
-            Point p(px,py);
-            path[j] = p;
-            if(j < m - 1)
-                positions[j] = vector<int>();
-            inTriangle[j] = true;
+            path[j] = Point(px,py);
         }
-        MaxHeap maxes;
-        MinHeap mins;
+        // For every map part, the legs it contains completely, stored one after the other.
+        vector<int> legs;
+        vector<int> legs_start(n + 1, 0);
         for(int j = 0; j < n; ++j){
-            double q0x, q0y,q1x,q1y,q2x,q2y,q3x,q3y,q4x,q4y,q5x,q5y;
-            cin >> q0x >> q0y >> q1x >> q1y >> q2x >> q2y >> q3x >> q3y >> q4x >> q4y >> q5x >> q5y;
-            vector< pair<Point, Point> > oriented_lines = sortLines(Point(q0x,q0y), Point(q1x,q1y), Point(q2x, q2y), Point(q3x,q3y), Point(q4x, q4y), Point(q5x, q5y));
+            Point q[6];
+            for(int k = 0; k < 6; ++k){
+                long qx, qy;
+                cin >> qx >> qy;
+                q[k] = Point(qx,qy);
+            }
+            sortLines(q);
+            bool previousInTriangle = false;
             for(int k = 0; k < m; ++k){
-                Point a = path[k];
-                for(vector< pair<Point, Point> >::iterator it = oriented_lines.begin(); it != oriented_lines.end(); ++it){
-                    Orientation oriented = orientation(it->first, it->second, a);
-                    if(!(oriented == LEFT_TURN || oriented == COLLINEAR)){
-                        inTriangle[k] = false;
-                    }
+                const Point &a = path[k];
+                bool inTriangle = orientation(q[0], q[1], a) >= 0 && orientation(q[2], q[3], a) >= 0 && orientation(q[4], q[5], a) >= 0;
+                if(previousInTriangle && inTriangle){
+                    legs.push_back(k-1);
                 }
-                if(k > 0){
-                    if(inTriangle[k-1] && inTriangle[k]){
-                        positions[k-1].push_back(j);
-                    }
-                    inTriangle[k-1] = true;
+                previousInTriangle = inTriangle;
+            }
+            legs_start[j + 1] = legs.size();
+        }
+        // Sliding window over the map parts, keep the window minimal while it covers every leg.
+        vector<int> covered(m - 1, 0);
+        int missing = m - 1;
+        int min_cost = n;
+        int first = 0;
+        for(int last = 0; last < n; ++last){
+            for(int k = legs_start[last]; k < legs_start[last + 1]; ++k){
+                if(covered[legs[k]]++ == 0){
+                    missing--;
                 }
             }
-            inTriangle[m - 1] = true;
-        }
-        //if(i == 3 || i == 4){
-        //    for(int j = 0; j < m - 1; ++j){
-        //        cout << "Leg " << j << ":";
-        //        for(vector<int>::iterator it = positions[j].begin(); it != positions[j].end(); ++it){
-        //            cout << " " << *it;
-        //        }
-        //        cout << "\n";
-        //    }
-        //}
-        for(int j = 0; j < m - 1; ++j){
-            pointers[j] = positions[j].begin();
-            if(!positions[j].empty()){
-                Position tmp(positions[j][0], j);
-                maxes.push(tmp);
-                mins.push(tmp);
-            }
-        }
-        int min_cost = maxes.top().first - mins.top().first + 1;
-        bool condition = true;
-        while(condition){
-            Position current_min = mins.top();
-            if(pointers[current_min.second] + 1 == positions[current_min.second].end()){
-                condition = false;
-            } else {    
-                pointers[current_min.second]++;
-                mins.pop();
-                Position tmp(*(pointers[current_min.second]), current_min.second);
-                mins.push(tmp);
-                maxes.push(tmp);
-                int cost = maxes.top().first - mins.top().first + 1;
-                if(cost < min_cost){
-                    //cout << maxes.top().first << " " << mins.top().first << "\n";
-                    min_cost = cost;
+            while(missing == 0){
+                min_cost = min(min_cost, last - first + 1);
+                for(int k = legs_start[first]; k < legs_start[first + 1]; ++k){
+                    if(--covered[legs[k]] == 0){
+                        missing++;
+                    }
                 }
+                first++;
             }
         }
         cout << min_cost << "\n";

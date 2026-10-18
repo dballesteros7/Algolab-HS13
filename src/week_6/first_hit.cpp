@@ -1,83 +1,84 @@
+#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/Exact_predicates_exact_constructions_kernel.h>
-#include <CGAL/Ray_2.h>
-#include <CGAL/Segment_2.h>
 #include <iostream>
+#include <vector>
+#include <algorithm>
+#include <random>
+#include <cmath>
 
 using namespace CGAL;
 using namespace std;
 
+// Exact constructions only for the few intersections actually computed; the cheap kernel
+// stores the input and filters out obstacles that miss the ray (its predicates are exact).
+typedef Exact_predicates_inexact_constructions_kernel IK;
 typedef Exact_predicates_exact_constructions_kernel K;
-typedef Ray_2<K> Ray;
-typedef Segment_2<K> Segment;
-typedef Point_2<K> Point;
+typedef K::Ray_2 Ray;
+typedef K::Segment_2 Segment;
+typedef K::Point_2 Point;
+
+// Exact floor of an exact number (to_double alone may be off by one).
+double floor_to_double(const K::FT &x){
+    double a = floor(to_double(x));
+    while(a > x) a -= 1;
+    while(a + 1 <= x) a += 1;
+    return a;
+}
 
 int main(){
     ios_base::sync_with_stdio(false);
-    cout.setf(ios::fixed);
+    mt19937 generator(42);
     int n;
     cin >> n;
     while(n != 0){
-        double x,y,a,b;
-        cin >> x;
-        cin >> y;
-        cin >> a;
-        cin >> b;
+        long x,y,a,b;
+        cin >> x >> y >> a >> b;
         Point origin(x,y);
-        Point path(a,b);
-        Ray ray(origin, path);
-        bool collides = false;
-        K::FT min_distance;
-        Object min_intersection;
-        Point first_hit;
+        Ray ray(origin, Point(a,b));
+        IK::Ray_2 approximate_ray(IK::Point_2(x,y), IK::Point_2(a,b));
+        vector<IK::Segment_2> obstacles(n);
         for(int i = 0; i < n; ++i){
-            double r, s, t, u;
-            cin >> r;
-            cin >> s;
-            cin >> t;
-            cin >> u;
-            Point source(r,s);
-            Point target(t,u);
-            Segment obstacle(source, target);
+            long r, s, t, u;
+            cin >> r >> s >> t >> u;
+            obstacles[i] = IK::Segment_2(IK::Point_2(r,s), IK::Point_2(t,u));
+        }
+        // In a random order the closest hit so far improves only O(log n) times in expectation,
+        // so only that many intersections are constructed; everything else is a cheap predicate.
+        shuffle(obstacles.begin(), obstacles.end(), generator);
+        bool collides = false;
+        Point first_hit;
+        Segment clipped;
+        for(int i = 0; i < n; ++i){
+            if(!do_intersect(approximate_ray, obstacles[i]))
+                continue;
+            // Input coordinates are exact as doubles, so this conversion is exact.
+            Segment obstacle(Point(obstacles[i].source().x(), obstacles[i].source().y()),
+                             Point(obstacles[i].target().x(), obstacles[i].target().y()));
+            // Once something is hit, only obstacles crossing the segment origin--first_hit can be closer.
+            if(collides && !do_intersect(clipped, obstacle))
+                continue;
+            // Intersect with the original ray so that constructions are never nested.
             Object result = intersection(ray, obstacle);
-            K::FT distance;
-            bool correct = true;
+            Point hit;
             if(const Point *ipoint = object_cast<Point>(&result)){
-                distance = squared_distance(origin, *ipoint);
+                hit = *ipoint;
             } else if(const Segment *isegment = object_cast<Segment>(&result)){
-                distance = squared_distance(origin, *isegment);
+                hit = has_smaller_distance_to_point(origin, isegment->source(), isegment->target()) ? isegment->source() : isegment->target();
             } else {
-                correct = false;
+                continue;
             }
-            if(correct && (!collides || distance < min_distance)){
+            if(!collides || has_smaller_distance_to_point(origin, hit, first_hit)){
                 collides = true;
-                min_distance = distance;
-                min_intersection = result;
+                first_hit = hit;
+                if(first_hit == origin) break;
+                clipped = Segment(origin, first_hit);
             }
         }
         if(!collides){
             cout << "no\n";
         } else {
-            if (const Segment *isegment = object_cast<Segment>(&min_intersection)){
-                K::FT distance_1 = squared_distance(origin, isegment->source());
-                if(distance_1 <= min_distance){
-                    first_hit = isegment->source(); 
-                } else {
-                    first_hit = isegment->target();
-                }
-            } else {
-                first_hit = *(object_cast<Point>(&min_intersection));
-            }
-            K::FT x = first_hit.x();
-            K::FT y = first_hit.y();
-            double x_d = floor(to_double(x));
-            double y_d = floor(to_double(y));
-            while(x_d > x) x_d--;
-            while(x_d + 1 <= x) x_d++;
-            while(y_d > y) y_d--;
-            while(y_d + 1 <= y) y_d++;
-            cout << setprecision(0) << x_d << " " << y_d << "\n";
+            cout << (long) floor_to_double(first_hit.x()) << " " << (long) floor_to_double(first_hit.y()) << "\n";
         }
         cin >> n;
     }
 }
-

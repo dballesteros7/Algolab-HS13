@@ -1,5 +1,4 @@
 #include <iostream>
-#include <stack>
 #include <vector>
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/push_relabel_max_flow.hpp>
@@ -15,6 +14,7 @@ typedef adjacency_list<vecS, vecS, directedS, no_property, EdgeRev> Graph;
 
 int main(){
     ios_base::sync_with_stdio(false);
+    cin.tie(0);
     int t;
     cin >> t;
     for(int i = 0; i < t; ++i){
@@ -41,25 +41,17 @@ int main(){
                 put(edge_reverse, sculpture, limb, rev);
                 put(edge_reverse, sculpture, rev, limb);
             }
-        } 
-        property_map<Graph, edge_residual_capacity_t>::type min_residual_cap;
-        int min_flow = 5000*1000 + 1;
+        }
+        // Every cut separates figure 0 from some figure j, on one side or the
+        // other, so the cheapest cut is the smallest of these 2(n-1) flows.
+        long min_flow = 5000*1000 + 1;
         int min_flow_s = 0;
         int min_flow_t = 0;
         int fixed = 0;
-        vector<int> min_cut;
-        bool *visited = new bool[n];
-        for(int j = 0; j < n; ++j){
-            visited[j] = false;
-        }
         for(int j = 1; j < n; ++j){
-            int flow_1 = push_relabel_max_flow(sculpture, fixed, j);
-            int flow_2 = push_relabel_max_flow(sculpture, j, fixed);
-            int flow = flow_2;
-            if(flow_1 < flow_2){
-                push_relabel_max_flow(sculpture, fixed, j);
-                flow = flow_1;
-            }
+            long flow_1 = push_relabel_max_flow(sculpture, fixed, j);
+            long flow_2 = push_relabel_max_flow(sculpture, j, fixed);
+            long flow = min(flow_1, flow_2);
             if(flow < min_flow){
                 min_flow = flow;
                 if(flow_1 < flow_2){
@@ -69,40 +61,41 @@ int main(){
                     min_flow_s = j;
                     min_flow_t = fixed;
                 }
-                min_cut = vector<int>();
-                stack<int> to_visit;
-                to_visit.push(min_flow_s);
-                for(int m = 0; m < n; ++m)
-                    visited[m] = false;
-                visited[min_flow_t] = true;
-                while(!to_visit.empty()){
-                    int current = to_visit.top();
-                    to_visit.pop();
-                    if(visited[current]){
-                        continue;
+            }
+        }
+        // Recompute only the best flow and take everything reachable from its
+        // source in the residual graph (reverse edges included).
+        vector<int> min_cut;
+        vector<bool> visited(n, false);
+        vector<int> to_visit;
+        if(n > 1){
+            push_relabel_max_flow(sculpture, min_flow_s, min_flow_t);
+            to_visit.push_back(min_flow_s);
+            visited[min_flow_t] = true;
+        }
+        while(!to_visit.empty()){
+            int current = to_visit.back();
+            to_visit.pop_back();
+            if(visited[current]){
+                continue;
+            }
+            graph_traits<Graph>::out_edge_iterator oi, oi_end;
+            tie(oi, oi_end) = out_edges(current, sculpture);
+            for(; oi != oi_end; ++oi){
+                if(get(edge_residual_capacity, sculpture, *oi) > 0){
+                    if(!visited[target(*oi, sculpture)]){
+                        to_visit.push_back(target(*oi, sculpture));
                     }
-                    graph_traits<Graph>::out_edge_iterator oi, oi_end;
-                    tie(oi, oi_end) = out_edges(current, sculpture);
-                    for(; oi != oi_end; ++oi){
-                        if(get(edge_capacity, sculpture, *oi) == 0){
-                            continue;
-                        }
-                        if(get(edge_residual_capacity, sculpture, *oi) > 0){
-                            if(!visited[target(*oi, sculpture)]){
-                                to_visit.push(target(*oi, sculpture));
-                            }
-                        }
-                    }
-                    min_cut.push_back(current);
-                    visited[current] = true;
                 }
             }
+            min_cut.push_back(current);
+            visited[current] = true;
         }
         cout << min_flow << "\n";
         cout << min_cut.size() << " ";
-        for(int j = 0; j < min_cut.size(); ++j){
+        for(size_t j = 0; j < min_cut.size(); ++j){
             if(j == min_cut.size() - 1){
-                cout << min_cut[j] << "\n";   
+                cout << min_cut[j] << "\n";
             } else {
                 cout << min_cut[j] << " ";
             }
